@@ -1,0 +1,65 @@
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "futureskillssyntax"
+version = "0.1.0"
+description = "FutureSkillsSyntax - Career Path Advisor with Mentorship"
+readme = "README.md"
+authors = [
+    {name = "FutureSkillsSyntax Team", email = "team@futureskillssyntax.com"}
+]
+license = {text = "MIT"}
+requires-python = ">=3.11"
+dependencies = [
+    "fastapi==0.104.1",
+    "uvicorn[standard]==0.24.0",
+    "sqlalchemy==2.0.23",
+    "asyncpg==0.29.0",
+    "alembic==1.12.1",
+    "python-jose[cryptography]==3.3.0",
+    "passlib[bcrypt]==1.7.4",
+    "python-multipart==0.0.6",
+    "pydantic==2.5.0",
+    "pydantic-settings==2.1.0",
+    "redis==5.0.1",
+    "celery==5.3.4",
+    "scikit-learn==1.3.2",
+    "pandas==2.1.4",
+    "numpy==1.26.2",
+    "python-dotenv==1.0.0",
+    "httpx==0.25.2",
+    "email-validator==2.1.0",
+    "boto3==1.34.0",
+    "pillow==10.1.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest==7.4.3",
+    "pytest-asyncio==0.21.1",
+    "pytest-cov==4.1.0",
+    "black==23.11.0",
+    "flake8==6.1.0",
+    "mypy==1.7.0",
+    "pre-commit==3.5.0",
+    "ipython==8.17.2",
+]
+
+[tool.black]
+line-length = 88
+target-version = ['py311']
+
+[tool.isort]
+profile = "black"
+multi_line_output = 3
+
+[tool.mypy]
+python_version = "3.11"
+warn_return_any = true
+warn_unused_configs = true
+
+[project.urls]
+Homepage = "https://github.com/yourusername/futureskillssyntax"
+Documentation = "https://docs.futureskillssyntax.com"
