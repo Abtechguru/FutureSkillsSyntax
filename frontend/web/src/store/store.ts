@@ -13,12 +13,16 @@ import storage from 'redux-persist/lib/storage'
 import { combineReducers } from 'redux'
 
 // Slices
-import authReducer from './slices/authSlice'
+import authReducer, { logout, refreshToken } from './slices/authSlice'
 import uiReducer from './slices/uiSlice'
 import notificationReducer from './slices/notificationSlice'
 import gamificationReducer from './slices/gamificationSlice'
 import mentorshipReducer from './slices/mentorshipSlice'
 import careerReducer from './slices/careerSlice'
+
+// Services for injection
+import { injectStore as injectApiStore } from '@/services/api'
+import { injectStore as injectSocketStore } from '@/services/socket'
 
 const persistConfig = {
   key: 'root',
@@ -49,15 +53,11 @@ export const store = configureStore({
   devTools: import.meta.env.MODE !== 'production',
 })
 
-export const persistor = persistStore(store)
-
 // Break circular dependencies by injecting store into services
-import { injectStore as injectApiStore } from '@/services/api'
-import { injectStore as injectSocketStore } from '@/services/socket'
-import { logout, refreshToken } from './slices/authSlice'
-
 injectApiStore(store, logout, refreshToken)
 injectSocketStore(store)
+
+export const persistor = persistStore(store)
 
 // TypeScript types
 export type RootState = ReturnType<typeof store.getState>

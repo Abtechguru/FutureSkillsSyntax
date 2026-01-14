@@ -1,6 +1,7 @@
 import axios from 'axios'
 import type { AxiosInstance, AxiosRequestConfig, AxiosResponse, InternalAxiosRequestConfig } from 'axios'
 import { toast } from 'react-hot-toast'
+import type { User, LoginCredentials, RegisterData, CareerField, MentorshipSession } from '@/types'
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000'
 

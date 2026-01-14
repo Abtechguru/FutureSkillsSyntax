@@ -24,6 +24,7 @@ from app.schemas.user import (
     PasswordResetConfirm,
 )
 from app.core.config import settings
+from app.services.auth import AuthService
 
 router = APIRouter()
 
@@ -71,8 +72,9 @@ async def register(
     await db.commit()
     await db.refresh(user)
     
-    # TODO: Send verification email in background
-    # background_tasks.add_task(send_verification_email, user.email, user.verification_token)
+    # Send verification email in background
+    auth_service = AuthService(db)
+    background_tasks.add_task(auth_service.send_verification_email, user)
     
     return user
 

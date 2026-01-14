@@ -8,7 +8,18 @@ import Layout from '@/components/layout/Layout'
 import LoadingSpinner from '@/components/ui/LoadingSpinner'
 
 // Lazy-loaded pages
-// const Home = lazy(() => import('@/pages/Home'))
+const Home = lazy(() => import('@/pages/Home'))
+const Login = lazy(() => import('@/pages/Auth/Login'))
+const Register = lazy(() => import('@/pages/Auth/Register'))
+const ForgotPassword = lazy(() => import('@/pages/Auth/ForgotPassword'))
+const ResetPassword = lazy(() => import('@/pages/Auth/ResetPassword'))
+const Dashboard = lazy(() => import('@/pages/Dashboard'))
+const Profile = lazy(() => import('@/pages/Profile/UserProfile'))
+const NotFound = lazy(() => import('@/pages/NotFound'))
+
+// Roles
+import { UserRole } from '@/types'
+import ProtectedRoute from '@/components/auth/ProtectedRoute'
 
 function App() {
   return (
@@ -29,7 +40,20 @@ function App() {
         >
           <Routes>
             <Route path="/" element={<Layout />}>
-              <Route index element={<div>Layout Test Only</div>} />
+              <Route index element={<Home />} />
+              <Route path="login" element={<Login />} />
+              <Route path="register" element={<Register />} />
+              <Route path="forgot-password" element={<ForgotPassword />} />
+              <Route path="reset-password/:token" element={<ResetPassword />} />
+
+              <Route element={<ProtectedRoute />}>
+                <Route path="dashboard" element={<Dashboard />} />
+                <Route path="profile">
+                  <Route index element={<Profile />} />
+                </Route>
+              </Route>
+
+              <Route path="*" element={<NotFound />} />
             </Route>
           </Routes>
         </Suspense>

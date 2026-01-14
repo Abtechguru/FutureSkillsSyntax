@@ -64,6 +64,13 @@ class Settings(BaseSettings):
     EMAIL_FROM: Optional[str] = None
     EMAIL_FROM_NAME: Optional[str] = "OnaAseyori"
     
+    # Frontend URL for email links
+    FRONTEND_URL: str = "http://localhost:5173"
+    
+    # Email control flags
+    EMAILS_ENABLED: bool = False  # Set to True when SMTP is configured
+    DEV_LOG_EMAILS: bool = True   # Log email content to console in development
+    
     # Rate Limiting
     RATE_LIMIT_REQUESTS: int = 100
     RATE_LIMIT_PERIOD: int = 3600

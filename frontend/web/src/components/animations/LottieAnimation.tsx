@@ -1,5 +1,6 @@
 import React from 'react'
-import Lottie, { LottieComponentProps } from 'lottie-react'
+import Lottie from 'lottie-react'
+import type { LottieComponentProps } from 'lottie-react'
 import { cn } from '@/utils/cn'
 
 interface LottieAnimationProps extends Omit<LottieComponentProps, 'animationData'> {
@@ -15,7 +16,6 @@ const LottieAnimation: React.FC<LottieAnimationProps> = ({
   className,
   loop = true,
   autoplay = true,
-  speed = 1,
   ...props
 }) => {
   return (
@@ -24,7 +24,6 @@ const LottieAnimation: React.FC<LottieAnimationProps> = ({
         animationData={animation}
         loop={loop}
         autoplay={autoplay}
-        speed={speed}
         {...props}
       />
     </div>

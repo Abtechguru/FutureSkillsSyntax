@@ -1,18 +1,14 @@
 import React, { useState } from 'react'
-import { Outlet } from 'react-router-dom'
+import { Outlet, useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Menu, X, Bell, Search, User, Settings, LogOut } from 'lucide-react'
 import { useSelector, useDispatch } from 'react-redux'
-import { useNavigate } from 'react-router-dom'
 
-// import Header from './Header'
-// import Sidebar from './Sidebar'
-// import Footer from './Footer'
+import Header from './Header'
+import Sidebar from './Sidebar'
+import Footer from './Footer'
 import type { RootState } from '@/store/store'
 import { logout } from '@/store/slices/authSlice'
 import XpBar from '@/components/gamification/XpBar'
-import NotificationBell from '@/components/ui/NotificationBell'
-import { cn } from '@/utils/cn'
 
 const Layout: React.FC = () => {
   const [sidebarOpen, setSidebarOpen] = useState(false)

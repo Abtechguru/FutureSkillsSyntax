@@ -41,8 +41,24 @@ class EmailService:
         text_content: Optional[str] = None
     ) -> bool:
         """Send an email."""
+        # Development mode: log to console instead of sending
+        if settings.DEV_LOG_EMAILS and not self.is_configured:
+            logger.info(f"[DEV EMAIL] To: {to_email}")
+            logger.info(f"[DEV EMAIL] Subject: {subject}")
+            logger.info(f"[DEV EMAIL] Content:\n{text_content or 'See HTML content'}")
+            # Extract verification/reset URLs from HTML for easy dev testing
+            import re
+            urls = re.findall(r'https?://[^\s<>"]+', html_content)
+            for url in urls:
+                logger.info(f"[DEV EMAIL] Link: {url}")
+            return True
+        
         if not self.is_configured:
             logger.warning("Email not configured, skipping send")
+            return False
+        
+        if not settings.EMAILS_ENABLED:
+            logger.warning("Emails disabled, skipping send")
             return False
         
         try:
@@ -75,7 +91,7 @@ class EmailService:
         verification_token: str
     ) -> bool:
         """Send email verification link."""
-        verification_url = f"https://app.onaaseyori.com/verify-email?token={verification_token}"
+        verification_url = f"{settings.FRONTEND_URL}/verify-email?token={verification_token}"
         
         html_content = f"""
         <!DOCTYPE html>
@@ -125,7 +141,7 @@ class EmailService:
         reset_token: str
     ) -> bool:
         """Send password reset link."""
-        reset_url = f"https://app.onaaseyori.com/reset-password?token={reset_token}"
+        reset_url = f"{settings.FRONTEND_URL}/reset-password?token={reset_token}"
         
         html_content = f"""
         <!DOCTYPE html>

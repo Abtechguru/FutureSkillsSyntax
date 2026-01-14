@@ -24,6 +24,7 @@ const Header: React.FC<HeaderProps> = ({
   onLogout,
 }) => {
   const { user, isAuthenticated } = useSelector((state: RootState) => state.auth)
+  const currentLevel = useSelector((state: RootState) => state.gamification?.currentLevel ?? 1)
   const navigate = useNavigate()
 
   return (
@@ -146,7 +147,7 @@ const Header: React.FC<HeaderProps> = ({
                 </div>
                 <div className="hidden md:block text-left">
                   <p className="text-sm font-medium text-gray-900 dark:text-gray-100">
-                    {user?.fullName || user?.username}
+                    {user?.username}
                   </p>
                   <p className="text-xs text-gray-600 dark:text-gray-400">
                     Level {currentLevel}

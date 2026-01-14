@@ -2,7 +2,7 @@ import { useCallback } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
 import { useNavigate } from 'react-router-dom'
 import { toast } from 'react-hot-toast'
-import { RootState, AppDispatch } from '@/store/store'
+import type { RootState, AppDispatch } from '@/store/store'
 import {
     loginUser,
     registerUser,
@@ -15,9 +15,8 @@ import {
     setRegistrationStep,
     updateRegistrationData,
     clearRegistrationData,
-    LoginCredentials,
-    RegisterData,
 } from '@/store/slices/authSlice'
+import type { LoginCredentials, RegisterData } from '@/store/slices/authSlice'
 
 export const useAuth = () => {
     const dispatch = useDispatch<AppDispatch>()
