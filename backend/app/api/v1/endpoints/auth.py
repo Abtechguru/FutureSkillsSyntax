@@ -205,3 +205,53 @@ async def get_current_user_profile(
 async def logout():
     """Logout user (client-side token invalidation)."""
     return {"message": "Successfully logged out"}
+
+
+@router.post("/verify-email")
+async def verify_email(
+    token: str,
+    db: AsyncSession = Depends(get_db)
+):
+    """Verify user email with token from email link."""
+    auth_service = AuthService(db)
+    user = await auth_service.verify_email(token)
+    
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid or expired verification token",
+        )
+    
+    return {
+        "message": "Email verified successfully",
+        "user_id": str(user.id),
+        "email": user.email,
+    }
+
+
+@router.post("/resend-verification")
+async def resend_verification_email(
+    email: str,
+    background_tasks: BackgroundTasks,
+    db: AsyncSession = Depends(get_db)
+):
+    """Resend verification email to user."""
+    result = await db.execute(
+        select(User).where(User.email == email)
+    )
+    user = result.scalar_one_or_none()
+    
+    if not user:
+        # Don't reveal if email exists
+        return {"message": "If email exists, verification link will be sent"}
+    
+    if user.is_verified:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Email already verified",
+        )
+    
+    auth_service = AuthService(db)
+    background_tasks.add_task(auth_service.send_verification_email, user)
+    
+    return {"message": "If email exists, verification link will be sent"}
