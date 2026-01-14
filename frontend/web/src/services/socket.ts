@@ -1,14 +1,14 @@
 import { io, Socket } from 'socket.io-client'
-import { store } from '@/store/store'
 
 class SocketService {
   private socket: Socket | null = null
   private reconnectAttempts = 0
   private maxReconnectAttempts = 5
+  private store: any = null
 
   connect() {
-    const token = store.getState().auth.accessToken
-    
+    const token = this.store?.getState()?.auth?.accessToken
+
     if (!token) {
       console.error('No authentication token available')
       return
@@ -44,7 +44,7 @@ class SocketService {
 
     this.socket.on('connect_error', (error) => {
       console.error('Socket connection error:', error)
-      
+
       this.reconnectAttempts++
       if (this.reconnectAttempts >= this.maxReconnectAttempts) {
         console.error('Max reconnection attempts reached')
@@ -124,6 +124,15 @@ class SocketService {
   getSocket(): Socket | null {
     return this.socket
   }
+
+  injectStore(store: any) {
+    this.store = store
+  }
 }
 
-export default new SocketService()
+const socketService = new SocketService()
+export const injectStore = (store: any) => {
+  socketService.injectStore(store)
+}
+
+export default socketService

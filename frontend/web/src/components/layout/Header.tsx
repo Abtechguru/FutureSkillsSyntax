@@ -1,13 +1,12 @@
 import React from 'react'
 import { motion } from 'framer-motion'
-import { Menu, Bell, Search, User, Settings, LogOut, Zap, Home } from 'lucide-react'
+import { Menu, Search, User, Settings, LogOut, Zap } from 'lucide-react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useSelector } from 'react-redux'
 
 import Button from '@/components/ui/Button'
 import NotificationBell from '@/components/ui/NotificationBell'
 import type { RootState } from '@/store/store'
-import { cn } from '@/utils/cn'
 
 interface HeaderProps {
   sidebarOpen: boolean

@@ -51,6 +51,14 @@ export const store = configureStore({
 
 export const persistor = persistStore(store)
 
+// Break circular dependencies by injecting store into services
+import { injectStore as injectApiStore } from '@/services/api'
+import { injectStore as injectSocketStore } from '@/services/socket'
+import { logout, refreshToken } from './slices/authSlice'
+
+injectApiStore(store, logout, refreshToken)
+injectSocketStore(store)
+
 // TypeScript types
 export type RootState = ReturnType<typeof store.getState>
 export type AppDispatch = typeof store.dispatch
