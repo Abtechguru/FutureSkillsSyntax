@@ -1,7 +1,6 @@
 import React, { useEffect, useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Award, X } from 'lucide-react'
-import { cn } from '@/utils/cn'
 
 interface Achievement {
   id: string
@@ -63,7 +62,7 @@ const AchievementToast: React.FC<AchievementToastProps> = ({
                   <div className="w-12 h-12 rounded-full bg-gradient-to-br from-yellow-400 to-orange-500 flex items-center justify-center">
                     <Award className="w-6 h-6 text-white" />
                   </div>
-                  
+
                   {/* XP Badge */}
                   <div className="absolute -top-1 -right-1">
                     <div className="bg-green-500 text-white text-xs font-bold px-2 py-0.5 rounded-full">

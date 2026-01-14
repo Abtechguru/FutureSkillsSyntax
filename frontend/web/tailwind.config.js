@@ -3,14 +3,26 @@ export default {
   content: [
     "./index.html",
     "./src/**/*.{js,ts,jsx,tsx}",
-    "./web/src/**/*.{js,ts,jsx,tsx}",
   ],
   darkMode: 'class',
   theme: {
     extend: {
-      // Colors - OnaAseyori Design System
+      // Colors - FutureSkillsSyntax Design System
       colors: {
-        // Primary - Indigo
+        background: "hsl(var(--background))",
+        foreground: "hsl(var(--foreground))",
+        border: "hsl(var(--border))",
+        input: "hsl(var(--input))",
+        ring: "hsl(var(--ring))",
+
+        card: {
+          DEFAULT: "hsl(var(--card))",
+          foreground: "hsl(var(--card-foreground))",
+        },
+        popover: {
+          DEFAULT: "hsl(var(--popover))",
+          foreground: "hsl(var(--popover-foreground))",
+        },
         primary: {
           50: '#EEF2FF',
           100: '#E0E7FF',
@@ -24,8 +36,8 @@ export default {
           800: '#3730A3',
           900: '#312E81',
           950: '#1E1B4B',
+          foreground: "hsl(var(--primary-foreground))",
         },
-        // Secondary - Emerald
         secondary: {
           50: '#ECFDF5',
           100: '#D1FAE5',
@@ -39,8 +51,12 @@ export default {
           800: '#065F46',
           900: '#064E3B',
           950: '#022C22',
+          foreground: "hsl(var(--secondary-foreground))",
         },
-        // Accent - Amber
+        muted: {
+          DEFAULT: "hsl(var(--muted))",
+          foreground: "hsl(var(--muted-foreground))",
+        },
         accent: {
           50: '#FFFBEB',
           100: '#FEF3C7',
@@ -54,68 +70,63 @@ export default {
           800: '#92400E',
           900: '#78350F',
           950: '#451A03',
+          foreground: "hsl(var(--accent-foreground))",
         },
-        // Semantic - Success
+        destructive: {
+          DEFAULT: "hsl(var(--destructive))",
+          foreground: "hsl(var(--destructive-foreground))",
+        },
         success: {
+          DEFAULT: '#22C55E',
           50: '#F0FDF4',
           100: '#DCFCE7',
           200: '#BBF7D0',
           300: '#86EFAC',
           400: '#4ADE80',
-          DEFAULT: '#22C55E',
           500: '#22C55E',
           600: '#16A34A',
           700: '#15803D',
           800: '#166534',
           900: '#14532D',
         },
-        // Semantic - Error
         error: {
+          DEFAULT: '#EF4444',
           50: '#FEF2F2',
           100: '#FEE2E2',
           200: '#FECACA',
           300: '#FCA5A5',
           400: '#F87171',
-          DEFAULT: '#EF4444',
           500: '#EF4444',
           600: '#DC2626',
           700: '#B91C1C',
           800: '#991B1B',
           900: '#7F1D1D',
         },
-        // Semantic - Warning
         warning: {
+          DEFAULT: '#F59E0B',
           50: '#FFFBEB',
           100: '#FEF3C7',
           200: '#FDE68A',
           300: '#FCD34D',
           400: '#FBBF24',
-          DEFAULT: '#F59E0B',
           500: '#F59E0B',
           600: '#D97706',
           700: '#B45309',
           800: '#92400E',
           900: '#78350F',
         },
-        // Semantic - Info
         info: {
+          DEFAULT: '#3B82F6',
           50: '#EFF6FF',
           100: '#DBEAFE',
           200: '#BFDBFE',
           300: '#93C5FD',
           400: '#60A5FA',
-          DEFAULT: '#3B82F6',
           500: '#3B82F6',
           600: '#2563EB',
           700: '#1D4ED8',
           800: '#1E40AF',
           900: '#1E3A8A',
-        },
-        // Background
-        background: {
-          white: '#FFFFFF',
-          light: '#F9FAFB',
-          dark: '#111827',
         },
       },
       // Typography

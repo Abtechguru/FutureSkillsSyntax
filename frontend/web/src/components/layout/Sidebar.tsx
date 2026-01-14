@@ -18,10 +18,12 @@ import {
   Award,
   Star,
   BarChart,
+  Shield,
+  Layout,
 } from 'lucide-react'
 import { useSelector } from 'react-redux'
 
-import { RootState } from '@/store/store'
+import type { RootState } from '@/store/store'
 import { cn } from '@/utils/cn'
 
 interface SidebarProps {
@@ -123,6 +125,20 @@ const Sidebar: React.FC<SidebarProps> = ({
       icon: Star,
       path: '/gamification/leaderboard',
       description: 'Compare with others',
+    },
+  ]
+  const adminNavItems = [
+    {
+      title: 'Admin Dashboard',
+      icon: Layout,
+      path: '/admin',
+      description: 'System management',
+    },
+    {
+      title: 'Security',
+      icon: Shield,
+      path: '/admin/security',
+      description: 'Access control',
     },
   ]
 
@@ -252,6 +268,20 @@ const Sidebar: React.FC<SidebarProps> = ({
             ))}
           </div>
         </div>
+
+        {/* Admin Navigation */}
+        {(user?.role === 'admin' || user?.role === 'mentor') && (
+          <div className="mb-6">
+            <h3 className="mb-2 px-3 text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">
+              Administration
+            </h3>
+            <div className="space-y-1">
+              {adminNavItems.map((item) => (
+                <NavItem key={item.path} item={item} />
+              ))}
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Bottom Actions */}

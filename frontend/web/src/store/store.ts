@@ -15,23 +15,25 @@ import { combineReducers } from 'redux'
 // Slices
 import authReducer from './slices/authSlice'
 import uiReducer from './slices/uiSlice'
+import notificationReducer from './slices/notificationSlice'
 import gamificationReducer from './slices/gamificationSlice'
-import careerReducer from './slices/careerSlice'
 import mentorshipReducer from './slices/mentorshipSlice'
+import careerReducer from './slices/careerSlice'
 
 const persistConfig = {
   key: 'root',
   version: 1,
   storage,
-  whitelist: ['auth', 'ui', 'gamification'], // Only persist these slices
+  whitelist: ['auth', 'ui'], // Only persist these slices
 }
 
 const rootReducer = combineReducers({
   auth: authReducer,
   ui: uiReducer,
+  notification: notificationReducer,
   gamification: gamificationReducer,
-  career: careerReducer,
   mentorship: mentorshipReducer,
+  career: careerReducer,
 })
 
 const persistedReducer = persistReducer(persistConfig, rootReducer)
@@ -44,7 +46,7 @@ export const store = configureStore({
         ignoredActions: [FLUSH, REHYDRATE, PAUSE, PERSIST, PURGE, REGISTER],
       },
     }),
-  devTools: process.env.NODE_ENV !== 'production',
+  devTools: import.meta.env.MODE !== 'production',
 })
 
 export const persistor = persistStore(store)

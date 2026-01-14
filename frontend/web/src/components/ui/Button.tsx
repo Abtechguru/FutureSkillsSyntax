@@ -1,9 +1,9 @@
 import React, { forwardRef } from 'react'
-import { motion, MotionProps } from 'framer-motion'
+import { motion, type MotionProps } from 'framer-motion'
 import { cn } from '@/utils/cn'
 import { Loader2 } from 'lucide-react'
 
-interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement>, MotionProps {
+interface ButtonProps extends Omit<React.ButtonHTMLAttributes<HTMLButtonElement>, keyof MotionProps>, MotionProps {
   variant?: 'default' | 'primary' | 'secondary' | 'outline' | 'ghost' | 'link' | 'danger'
   size?: 'sm' | 'md' | 'lg' | 'xl'
   loading?: boolean
@@ -12,6 +12,8 @@ interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement>, Mot
   icon?: React.ReactNode
   iconPosition?: 'left' | 'right'
   pulse?: boolean
+  as?: React.ElementType
+  to?: string
 }
 
 const Button = forwardRef<HTMLButtonElement, ButtonProps>(
@@ -28,6 +30,7 @@ const Button = forwardRef<HTMLButtonElement, ButtonProps>(
       pulse = false,
       className,
       disabled,
+      as: Component = 'button',
       ...props
     },
     ref
@@ -67,8 +70,10 @@ const Button = forwardRef<HTMLButtonElement, ButtonProps>(
       xl: 'w-6 h-6',
     }
 
+    const MotionComponent = motion(Component as any) as any
+
     return (
-      <motion.button
+      <MotionComponent
         ref={ref}
         className={cn(baseClasses, variantClasses[variant], sizeClasses[size])}
         disabled={disabled || loading}
@@ -89,7 +94,7 @@ const Button = forwardRef<HTMLButtonElement, ButtonProps>(
             )}
           </>
         )}
-      </motion.button>
+      </MotionComponent>
     )
   }
 )

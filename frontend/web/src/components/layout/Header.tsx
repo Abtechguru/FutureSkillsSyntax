@@ -6,7 +6,7 @@ import { useSelector } from 'react-redux'
 
 import Button from '@/components/ui/Button'
 import NotificationBell from '@/components/ui/NotificationBell'
-import { RootState } from '@/store/store'
+import type { RootState } from '@/store/store'
 import { cn } from '@/utils/cn'
 
 interface HeaderProps {

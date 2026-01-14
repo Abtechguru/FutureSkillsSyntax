@@ -1,0 +1,99 @@
+INFO:     Will watch for changes in these directories: ['C:\\Users\\HP 840G4\\Desktop\\FutureSkillsSyntax\\backend']
+INFO:     Uvicorn running on http://127.0.0.1:8000 (Press CTRL+C to quit)
+INFO:     Started reloader process [17896] using WatchFiles
+Process SpawnProcess-1:
+Traceback (most recent call last):
+  File "C:\Users\HP 840G4\Desktop\FutureSkillsSyntax\backend\venv\Lib\site-packages\pydantic_settings\sources\base.py", line 510, in __call__
+    field_value = self.prepare_field_value(field_name, field, field_value, value_is_complex)
+  File "C:\Users\HP 840G4\Desktop\FutureSkillsSyntax\backend\venv\Lib\site-packages\pydantic_settings\sources\providers\env.py", line 123, in prepare_field_value
+    raise e
+  File "C:\Users\HP 840G4\Desktop\FutureSkillsSyntax\backend\venv\Lib\site-packages\pydantic_settings\sources\providers\env.py", line 120, in prepare_field_value
+    value = self.decode_complex_value(field_name, field, value)
+  File "C:\Users\HP 840G4\Desktop\FutureSkillsSyntax\backend\venv\Lib\site-packages\pydantic_settings\sources\base.py", line 187, in decode_complex_value
+    return json.loads(value)
+           ~~~~~~~~~~^^^^^^^
+  File "C:\Python314\Lib\json\__init__.py", line 346, in loads
+    return _default_decoder.decode(s)
+           ~~~~~~~~~~~~~~~~~~~~~~~^^^
+  File "C:\Python314\Lib\json\decoder.py", line 345, in decode
+    obj, end = self.raw_decode(s, idx=_w(s, 0).end())
+               ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Python314\Lib\json\decoder.py", line 363, in raw_decode
+    raise JSONDecodeError("Expecting value", s, err.value) from None
+json.decoder.JSONDecodeError: Expecting value: line 1 column 1 (char 0)
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "C:\Python314\Lib\multiprocessing\process.py", line 320, in _bootstrap
+    self.run()
+    ~~~~~~~~^^
+  File "C:\Python314\Lib\multiprocessing\process.py", line 108, in run
+    self._target(*self._args, **self._kwargs)
+    ~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\HP 840G4\Desktop\FutureSkillsSyntax\backend\venv\Lib\site-packages\uvicorn\_subprocess.py", line 80, in subprocess_started
+    target(sockets=sockets)
+    ~~~~~~^^^^^^^^^^^^^^^^^
+  File "C:\Users\HP 840G4\Desktop\FutureSkillsSyntax\backend\venv\Lib\site-packages\uvicorn\server.py", line 67, in run
+    return asyncio_run(self.serve(sockets=sockets), loop_factory=self.config.get_loop_factory())
+  File "C:\Python314\Lib\asyncio\runners.py", line 204, in run
+    return runner.run(main)
+           ~~~~~~~~~~^^^^^^
+  File "C:\Python314\Lib\asyncio\runners.py", line 127, in run
+    return self._loop.run_until_complete(task)
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^
+  File "C:\Python314\Lib\asyncio\base_events.py", line 719, in run_until_complete
+    return future.result()
+           ~~~~~~~~~~~~~^^
+  File "C:\Users\HP 840G4\Desktop\FutureSkillsSyntax\backend\venv\Lib\site-packages\uvicorn\server.py", line 71, in serve
+    await self._serve(sockets)
+  File "C:\Users\HP 840G4\Desktop\FutureSkillsSyntax\backend\venv\Lib\site-packages\uvicorn\server.py", line 78, in _serve
+    config.load()
+    ~~~~~~~~~~~^^
+  File "C:\Users\HP 840G4\Desktop\FutureSkillsSyntax\backend\venv\Lib\site-packages\uvicorn\config.py", line 439, in load
+    self.loaded_app = import_from_string(self.app)
+                      ~~~~~~~~~~~~~~~~~~^^^^^^^^^^
+  File "C:\Users\HP 840G4\Desktop\FutureSkillsSyntax\backend\venv\Lib\site-packages\uvicorn\importer.py", line 19, in import_from_string
+    module = importlib.import_module(module_str)
+  File "C:\Python314\Lib\importlib\__init__.py", line 88, in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "<frozen importlib._bootstrap>", line 1398, in _gcd_import
+  File "<frozen importlib._bootstrap>", line 1371, in _find_and_load
+  File "<frozen importlib._bootstrap>", line 1342, in _find_and_load_unlocked
+  File "<frozen importlib._bootstrap>", line 938, in _load_unlocked
+  File "<frozen importlib._bootstrap_external>", line 762, in exec_module
+  File "<frozen importlib._bootstrap>", line 491, in _call_with_frames_removed
+  File "C:\Users\HP 840G4\Desktop\FutureSkillsSyntax\backend\app\main.py", line 15, in <module>
+    from app.api.v1.api import api_router
+  File "C:\Users\HP 840G4\Desktop\FutureSkillsSyntax\backend\app\api\v1\api.py", line 5, in <module>
+    from app.api.v1.endpoints import auth, career, user, mentorship, gamification, learning, community, upload
+  File "C:\Users\HP 840G4\Desktop\FutureSkillsSyntax\backend\app\api\v1\endpoints\auth.py", line 8, in <module>
+    from app.core.database import get_db
+  File "C:\Users\HP 840G4\Desktop\FutureSkillsSyntax\backend\app\core\database.py", line 6, in <module>
+    from app.core.config import settings
+  File "C:\Users\HP 840G4\Desktop\FutureSkillsSyntax\backend\app\core\config.py", line 92, in <module>
+    settings = get_settings()
+  File "C:\Users\HP 840G4\Desktop\FutureSkillsSyntax\backend\app\core\config.py", line 89, in get_settings
+    return Settings()
+  File "C:\Users\HP 840G4\Desktop\FutureSkillsSyntax\backend\venv\Lib\site-packages\pydantic_settings\main.py", line 195, in __init__
+    **__pydantic_self__._settings_build_values(
+      ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^
+        values,
+        ^^^^^^^
+    ...<25 lines>...
+        _secrets_dir=_secrets_dir,
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "C:\Users\HP 840G4\Desktop\FutureSkillsSyntax\backend\venv\Lib\site-packages\pydantic_settings\main.py", line 438, in _settings_build_values
+    source_state = source()
+  File "C:\Users\HP 840G4\Desktop\FutureSkillsSyntax\backend\venv\Lib\site-packages\pydantic_settings\sources\providers\dotenv.py", line 106, in __call__
+    data: dict[str, Any] = super().__call__()
+                           ~~~~~~~~~~~~~~~~^^
+  File "C:\Users\HP 840G4\Desktop\FutureSkillsSyntax\backend\venv\Lib\site-packages\pydantic_settings\sources\base.py", line 512, in __call__
+    raise SettingsError(
+        f'error parsing value for field "{field_name}" from source "{self.__class__.__name__}"'
+    ) from e
+pydantic_settings.exceptions.SettingsError: error parsing value for field "CORS_ORIGINS" from source "DotEnvSettingsSource"
+INFO:     Stopping reloader process [17896]

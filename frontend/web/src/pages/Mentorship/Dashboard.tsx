@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
     Calendar,
@@ -17,46 +17,26 @@ import {
     MapPin,
     Briefcase,
     Award,
+    Loader2,
 } from 'lucide-react'
 
 import Card from '@/components/ui/Card'
 import Button from '@/components/ui/Button'
-import { Avatar, AvatarGroup } from '@/components/ui/Avatar'
-import { Badge } from '@/components/ui/Badge'
+import Avatar from '@/components/ui/Avatar'
+import Badge from '@/components/ui/Badge'
 import { Input } from '@/components/ui/Input'
 import { Textarea } from '@/components/ui/Textarea'
 import Modal from '@/components/ui/Modal'
-import { Progress } from '@/components/ui/Progress'
+import Progress from '@/components/ui/Progress'
 import FadeIn from '@/components/animations/FadeIn'
 import StaggerChildren from '@/components/animations/StaggerChildren'
 import { cn } from '@/utils/cn'
 
-interface Mentor {
-    id: string
-    name: string
-    avatar: string
-    title: string
-    company: string
-    skills: string[]
-    rating: number
-    sessions: number
-    location: string
-    bio: string
-}
-
-interface Session {
-    id: string
-    title: string
-    mentor: { name: string; avatar: string }
-    date: string
-    time: string
-    duration: number
-    type: 'video' | 'chat' | 'phone'
-    status: 'upcoming' | 'completed' | 'cancelled'
-    notes?: string
-}
+import { mentorshipService } from '@/services/mentorship'
+import type { Mentor, MentorSession as Session } from '@/services/mentorship'
 
 const MentorshipDashboard: React.FC = () => {
+    const [isLoading, setIsLoading] = useState(true)
     const [activeTab, setActiveTab] = useState<'mentors' | 'sessions' | 'calendar'>('mentors')
     const [selectedMentor, setSelectedMentor] = useState<Mentor | null>(null)
     const [selectedSession, setSelectedSession] = useState<Session | null>(null)
@@ -66,86 +46,42 @@ const MentorshipDashboard: React.FC = () => {
     const [searchQuery, setSearchQuery] = useState('')
     const [currentMonth, setCurrentMonth] = useState(new Date())
 
-    // Mock data
-    const mentors: Mentor[] = [
-        {
-            id: '1',
-            name: 'Sarah Chen',
-            avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Sarah',
-            title: 'Senior Software Engineer',
-            company: 'Google',
-            skills: ['React', 'TypeScript', 'System Design'],
-            rating: 4.9,
-            sessions: 128,
-            location: 'San Francisco, CA',
-            bio: 'Passionate about helping new developers grow and succeed in tech.',
-        },
-        {
-            id: '2',
-            name: 'John Smith',
-            avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=John',
-            title: 'Engineering Manager',
-            company: 'Microsoft',
-            skills: ['Leadership', 'Career Growth', 'Node.js'],
-            rating: 4.8,
-            sessions: 95,
-            location: 'Seattle, WA',
-            bio: 'Helping engineers transition into leadership roles.',
-        },
-        {
-            id: '3',
-            name: 'Maria Garcia',
-            avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Maria',
-            title: 'Frontend Lead',
-            company: 'Netflix',
-            skills: ['React', 'Performance', 'CSS'],
-            rating: 4.7,
-            sessions: 72,
-            location: 'Los Angeles, CA',
-            bio: 'Building beautiful, performant user interfaces.',
-        },
-    ]
+    const [mentors, setMentors] = useState<Mentor[]>([])
+    const [sessions, setSessions] = useState<Session[]>([])
+    const [progressStats, setProgressStats] = useState({
+        totalSessions: 0,
+        hoursLearned: 0,
+        goalsCompleted: 0,
+        totalGoals: 10,
+    })
 
-    const sessions: Session[] = [
-        {
-            id: '1',
-            title: 'React Best Practices',
-            mentor: { name: 'Sarah Chen', avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Sarah' },
-            date: '2026-01-14',
-            time: '10:00 AM',
-            duration: 60,
-            type: 'video',
-            status: 'upcoming',
-        },
-        {
-            id: '2',
-            title: 'Career Path Discussion',
-            mentor: { name: 'John Smith', avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=John' },
-            date: '2026-01-15',
-            time: '2:00 PM',
-            duration: 45,
-            type: 'chat',
-            status: 'upcoming',
-        },
-        {
-            id: '3',
-            title: 'Code Review Session',
-            mentor: { name: 'Sarah Chen', avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Sarah' },
-            date: '2026-01-10',
-            time: '11:00 AM',
-            duration: 60,
-            type: 'video',
-            status: 'completed',
-            notes: 'Great session! Learned about clean code principles.',
-        },
-    ]
+    useEffect(() => {
+        const fetchData = async () => {
+            setIsLoading(true)
+            try {
+                const [mentorsData, sessionsData] = await Promise.all([
+                    mentorshipService.getMentors(),
+                    mentorshipService.getSessions()
+                ])
+                setMentors(mentorsData)
+                setSessions(sessionsData)
 
-    const progressStats = {
-        totalSessions: 12,
-        hoursLearned: 18,
-        goalsCompleted: 5,
-        totalGoals: 8,
-    }
+                // Calculate basic stats from sessions
+                const completed = sessionsData.filter(s => s.status === 'completed')
+                setProgressStats({
+                    totalSessions: completed.length,
+                    hoursLearned: completed.reduce((acc, s) => acc + (s.duration / 60), 0),
+                    goalsCompleted: completed.length, // Placeholder logic
+                    totalGoals: 10,
+                })
+            } catch (error) {
+                console.error('Failed to fetch mentorship data:', error)
+            } finally {
+                setIsLoading(false)
+            }
+        }
+        fetchData()
+    }, [])
 
     const tabs = [
         { id: 'mentors', label: 'Find Mentors', icon: User },
@@ -192,6 +128,14 @@ const MentorshipDashboard: React.FC = () => {
         setShowFeedbackModal(false)
         setFeedbackRating(0)
         setFeedbackText('')
+    }
+
+    if (isLoading) {
+        return (
+            <div className="flex h-[60vh] items-center justify-center">
+                <Loader2 className="h-8 w-8 animate-spin text-primary" />
+            </div>
+        )
     }
 
     return (
@@ -296,7 +240,7 @@ const MentorshipDashboard: React.FC = () => {
                                             </p>
 
                                             <div className="flex flex-wrap gap-2 mb-4">
-                                                {mentor.skills.map((skill) => (
+                                                {mentor.expertise.map((skill: string) => (
                                                     <Badge key={skill} variant="secondary">{skill}</Badge>
                                                 ))}
                                             </div>
@@ -304,9 +248,9 @@ const MentorshipDashboard: React.FC = () => {
                                             <div className="flex items-center justify-between text-sm text-gray-500 mb-4">
                                                 <span className="flex items-center gap-1">
                                                     <MapPin className="w-4 h-4" />
-                                                    {mentor.location}
+                                                    {mentor.timezone}
                                                 </span>
-                                                <span>{mentor.sessions} sessions</span>
+                                                <span>{mentor.sessionCount} sessions</span>
                                             </div>
 
                                             <Button
@@ -340,7 +284,7 @@ const MentorshipDashboard: React.FC = () => {
                                     Upcoming Sessions
                                 </h3>
                                 <div className="space-y-4">
-                                    {sessions.filter(s => s.status === 'upcoming').map((session) => (
+                                    {sessions.filter(s => s.status === 'confirmed' || s.status === 'pending').map((session) => (
                                         <div
                                             key={session.id}
                                             className="flex items-center gap-4 p-4 rounded-lg border border-gray-200 dark:border-gray-700 hover:border-primary/50 cursor-pointer transition-colors"
@@ -362,7 +306,7 @@ const MentorshipDashboard: React.FC = () => {
                                                 </div>
                                                 <div className="flex items-center gap-1 text-gray-500">
                                                     {getSessionTypeIcon(session.type)}
-                                                    {session.time}
+                                                    {session.startTime}
                                                 </div>
                                             </div>
                                         </div>
@@ -480,7 +424,7 @@ const MentorshipDashboard: React.FC = () => {
                                                             className="text-xs p-1 mb-1 rounded bg-primary/10 text-primary truncate"
                                                             onClick={() => setSelectedSession(session)}
                                                         >
-                                                            {session.time} - {session.title}
+                                                            {session.startTime} - {session.title}
                                                         </div>
                                                     ))}
                                                 </>
@@ -525,7 +469,7 @@ const MentorshipDashboard: React.FC = () => {
                             </div>
                             <div className="flex items-center gap-2 text-gray-600 dark:text-gray-400">
                                 <Clock className="w-5 h-5" />
-                                {selectedSession.time} ({selectedSession.duration} min)
+                                {selectedSession.startTime} ({selectedSession.duration} min)
                             </div>
                         </div>
 
@@ -536,7 +480,7 @@ const MentorshipDashboard: React.FC = () => {
                             </span>
                         </div>
 
-                        {selectedSession.status === 'upcoming' && (
+                        {(selectedSession.status === 'confirmed' || selectedSession.status === 'pending') && (
                             <div className="flex gap-3">
                                 <Button variant="primary" fullWidth icon={<Video />}>
                                     Join Session
@@ -620,7 +564,7 @@ const MentorshipDashboard: React.FC = () => {
                                 <div className="flex items-center gap-1 text-yellow-500 mt-1">
                                     <Star className="w-4 h-4 fill-current" />
                                     <span>{selectedMentor.rating}</span>
-                                    <span className="text-gray-400">({selectedMentor.sessions} sessions)</span>
+                                    <span className="text-gray-400">({selectedMentor.sessionCount} sessions)</span>
                                 </div>
                             </div>
                         </div>

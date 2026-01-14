@@ -1,11 +1,13 @@
 import React, { forwardRef } from 'react'
-import { motion, HTMLMotionProps } from 'framer-motion'
+import { motion, type HTMLMotionProps } from 'framer-motion'
 import { cn } from '@/utils/cn'
 
 export interface CardProps extends HTMLMotionProps<'div'> {
   variant?: 'default' | 'elevated' | 'interactive' | 'compact'
   padding?: 'none' | 'sm' | 'md' | 'lg'
   bordered?: boolean
+  hover?: boolean
+  animate?: boolean
 }
 
 const Card = forwardRef<HTMLDivElement, CardProps>(
@@ -14,12 +16,15 @@ const Card = forwardRef<HTMLDivElement, CardProps>(
       variant = 'default',
       padding = 'md',
       bordered = true,
+      hover = false,
+      animate = false,
       className,
       children,
       ...props
     },
     ref
   ) => {
+    const isInteractive = variant === 'interactive' || hover
     const variantClasses = {
       default: '',
       elevated: 'shadow-lg hover:shadow-xl',
@@ -38,8 +43,9 @@ const Card = forwardRef<HTMLDivElement, CardProps>(
     return (
       <motion.div
         ref={ref}
-        initial={variant === 'interactive' ? { y: 0 } : undefined}
-        whileHover={variant === 'interactive' ? { y: -4 } : undefined}
+        initial={isInteractive ? { y: 0, opacity: animate ? 0 : 1 } : undefined}
+        whileInView={animate ? { opacity: 1 } : undefined}
+        whileHover={isInteractive ? { y: -4, scale: 1.01 } : undefined}
         transition={{ duration: 0.2 }}
         className={cn(
           'rounded-xl bg-white dark:bg-gray-800 transition-all duration-200',

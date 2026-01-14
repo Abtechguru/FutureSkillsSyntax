@@ -257,6 +257,6 @@
 
   /* Tooltip */
   .tooltip {
-    @apply absolute z-50 overflow-hidden rounded-md bg-gray-900 px-3 py-1.5 text-xs text-gray-50 animate-in fade-in-0 zoom-in-95;
+    @apply absolute z-50 overflow-hidden rounded-md bg-gray-900 px-3 py-1.5 text-xs text-gray-50;
   }
 }
