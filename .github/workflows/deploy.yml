@@ -5,15 +5,41 @@ on:
     branches: [ main, production ]
   pull_request:
     branches: [ main ]
+  schedule:
+    - cron: '0 2 * * *'  # Daily at 2 AM for security scans
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}
 
 jobs:
+  security-scan:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Run Trivy vulnerability scanner
+        uses: aquasecurity/trivy-action@master
+        with:
+          scan-type: 'fs'
+          scan-ref: '.'
+          format: 'sarif'
+          output: 'trivy-results.sarif'
+      
+      - name: Upload Trivy scan results to GitHub Security tab
+        uses: github/codeql-action/upload-sarif@v2
+        with:
+          sarif_file: 'trivy-results.sarif'
+
   test:
     runs-on: ubuntu-latest
+    needs: security-scan
     services:
       postgres:
-        image: postgres:15
+        image: postgres:15-alpine
         env:
           POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: test_db
         options: >-
           --health-cmd pg_isready
           --health-interval 10s
@@ -22,7 +48,7 @@ jobs:
         ports:
           - 5432:5432
       redis:
-        image: redis:7
+        image: redis:7-alpine
         ports:
           - 6379:6379
         options: >-
@@ -38,26 +64,69 @@ jobs:
       uses: actions/setup-python@v4
       with:
         python-version: '3.11'
+        cache: 'pip'
     
     - name: Install dependencies
       run: |
         cd backend
         pip install -e ".[dev]"
     
-    - name: Run tests
+    - name: Run tests with coverage
       run: |
         cd backend
-        pytest tests/ --cov=app --cov-report=xml
+        pytest tests/ --cov=app --cov-report=xml --cov-report=html
     
     - name: Upload coverage to Codecov
       uses: codecov/codecov-action@v3
       with:
-        file: ./backend/coverage.xml
+        files: ./backend/coverage.xml
+        flags: unittests
+    
+    - name: Run security scan on dependencies
+      run: |
+        cd backend
+        pip install safety
+        safety check --full-report
 
-  build-and-push:
-    needs: test
+  lint:
     runs-on: ubuntu-latest
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    needs: security-scan
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.11'
+    
+    - name: Install linting tools
+      run: |
+        pip install black flake8 isort mypy
+    
+    - name: Check code formatting with Black
+      run: |
+        cd backend
+        black --check --diff app tests
+    
+    - name: Check imports with isort
+      run: |
+        cd backend
+        isort --check-only --diff app tests
+    
+    - name: Lint with flake8
+      run: |
+        cd backend
+        flake8 app tests --max-line-length=88
+    
+    - name: Type check with mypy
+      run: |
+        cd backend
+        mypy app
+
+  build-backend:
+    runs-on: ubuntu-latest
+    needs: [test, lint]
+    if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/production')
     
     steps:
     - uses: actions/checkout@v4
@@ -65,22 +134,196 @@ jobs:
     - name: Set up Docker Buildx
       uses: docker/setup-buildx-action@v2
     
-    - name: Login to DockerHub
+    - name: Login to GitHub Container Registry
       uses: docker/login-action@v2
       with:
-        username: ${{ secrets.DOCKER_USERNAME }}
-        password: ${{ secrets.DOCKER_PASSWORD }}
+        registry: ${{ env.REGISTRY }}
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
     
-    - name: Build and push backend
+    - name: Extract metadata (tags, labels)
+      id: meta
+      uses: docker/metadata-action@v4
+      with:
+        images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}-backend
+        tags: |
+          type=ref,event=branch
+          type=ref,event=pr
+          type=semver,pattern={{version}}
+          type=semver,pattern={{major}}.{{minor}}
+          type=sha,prefix={{branch}}-
+    
+    - name: Build and push backend Docker image
       uses: docker/build-push-action@v4
       with:
         context: ./backend
         push: true
-        tags: ${{ secrets.DOCKER_USERNAME }}/futureskillssyntax-backend:latest
+        tags: ${{ steps.meta.outputs.tags }}
+        labels: ${{ steps.meta.outputs.labels }}
+        cache-from: type=gha
+        cache-to: type=gha,mode=max
+
+  build-frontend:
+    runs-on: ubuntu-latest
+    needs: [test, lint]
+    if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/production')
     
-    - name: Build and push frontend
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Set up Node.js
+      uses: actions/setup-node@v3
+      with:
+        node-version: '18'
+        cache: 'npm'
+        cache-dependency-path: frontend/web/package-lock.json
+    
+    - name: Install dependencies
+      run: |
+        cd frontend/web
+        npm ci
+    
+    - name: Build frontend
+      run: |
+        cd frontend/web
+        npm run build
+    
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v2
+    
+    - name: Login to GitHub Container Registry
+      uses: docker/login-action@v2
+      with:
+        registry: ${{ env.REGISTRY }}
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
+    
+    - name: Build and push frontend Docker image
       uses: docker/build-push-action@v4
       with:
         context: ./frontend/web
         push: true
-        tags: ${{ secrets.DOCKER_USERNAME }}/futureskillssyntax-frontend:latest
+        tags: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}-frontend:latest
+        cache-from: type=gha
+        cache-to: type=gha,mode=max
+
+  deploy-staging:
+    runs-on: ubuntu-latest
+    needs: [build-backend, build-frontend]
+    if: github.ref == 'refs/heads/main'
+    environment: staging
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Configure AWS credentials
+      uses: aws-actions/configure-aws-credentials@v1
+      with:
+        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        aws-region: us-east-1
+    
+    - name: Deploy to ECS (staging)
+      run: |
+        aws ecs update-service \
+          --cluster futureskills-staging \
+          --service futureskills-backend \
+          --force-new-deployment
+        
+        aws ecs update-service \
+          --cluster futureskills-staging \
+          --service futureskills-frontend \
+          --force-new-deployment
+
+  deploy-production:
+    runs-on: ubuntu-latest
+    needs: [deploy-staging]
+    if: github.ref == 'refs/heads/production'
+    environment: production
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Configure AWS credentials
+      uses: aws-actions/configure-aws-credentials@v1
+      with:
+        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        aws-region: us-east-1
+    
+    - name: Run database migrations
+      run: |
+        docker run --rm \
+          -e DATABASE_URL="${{ secrets.PRODUCTION_DATABASE_URL }}" \
+          ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}-backend:latest \
+          python -m alembic upgrade head
+    
+    - name: Deploy to ECS (production)
+      run: |
+        aws ecs update-service \
+          --cluster futureskills-production \
+          --service futureskills-backend \
+          --force-new-deployment
+        
+        sleep 30
+        
+        aws ecs update-service \
+          --cluster futureskills-production \
+          --service futureskills-frontend \
+          --force-new-deployment
+    
+    - name: Run smoke tests
+      run: |
+        curl -f https://api.futureskillssyntax.com/health || exit 1
+        curl -f https://app.futureskillssyntax.com || exit 1
+    
+    - name: Notify deployment success
+      if: success()
+      uses: rtCamp/action-slack-notify@v2
+      env:
+        SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK }}
+        SLACK_TITLE: "✅ Production Deployment Successful"
+        SLACK_MESSAGE: "FutureSkillsSyntax v1.0.0 deployed to production"
+        SLACK_COLOR: "good"
+
+  rollback:
+    runs-on: ubuntu-latest
+    if: failure() && needs.deploy-production.result == 'failure'
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Configure AWS credentials
+      uses: aws-actions/configure-aws-credentials@v1
+      with:
+        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        aws-region: us-east-1
+    
+    - name: Rollback to previous version
+      run: |
+        # Get previous task definition
+        PREVIOUS_TASK=$(aws ecs describe-services \
+          --cluster futureskills-production \
+          --service futureskills-backend \
+          --query 'services[0].deployments[?status==`PRIMARY`].taskDefinition' \
+          --output text | head -2 | tail -1)
+        
+        # Rollback service
+        aws ecs update-service \
+          --cluster futureskills-production \
+          --service futureskills-backend \
+          --task-definition $PREVIOUS_TASK
+        
+        aws ecs update-service \
+          --cluster futureskills-production \
+          --service futureskills-frontend \
+          --task-definition $PREVIOUS_TASK
+    
+    - name: Notify rollback
+      uses: rtCamp/action-slack-notify@v2
+      env:
+        SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK }}
+        SLACK_TITLE: "⚠️ Production Rollback Executed"
+        SLACK_MESSAGE: "Rolled back due to deployment failure"
+        SLACK_COLOR: "warning"

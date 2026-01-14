@@ -1,10 +1,12 @@
-from pydantic import BaseModel, EmailStr, Field, validator
-from datetime import datetime
+"""User schemas."""
+
+from pydantic import BaseModel, EmailStr, Field
 from typing import Optional, List
-import enum
+from datetime import datetime
+from enum import Enum
 
 
-class UserRole(str, enum.Enum):
+class UserRole(str, Enum):
     ADMIN = "admin"
     MENTOR = "mentor"
     MENTEE = "mentee"
@@ -12,67 +14,27 @@ class UserRole(str, enum.Enum):
     PARENT_GUARDIAN = "parent_guardian"
 
 
-class Gender(str, enum.Enum):
+class Gender(str, Enum):
     MALE = "male"
     FEMALE = "female"
     NON_BINARY = "non_binary"
     PREFER_NOT_TO_SAY = "prefer_not_to_say"
 
 
-class UserBase(BaseModel):
+# ============== Auth Schemas ==============
+
+class UserCreate(BaseModel):
     email: EmailStr
-    username: str = Field(..., min_length=3, max_length=50, regex="^[a-zA-Z0-9_]+$")
-    full_name: Optional[str] = Field(None, max_length=100)
+    username: str = Field(..., min_length=3, max_length=50)
+    password: str = Field(..., min_length=8)
+    full_name: Optional[str] = None
     role: UserRole = UserRole.CAREER_SEEKER
     gender: Optional[Gender] = None
 
 
-class UserCreate(UserBase):
-    password: str = Field(..., min_length=8)
-    confirm_password: str
-    
-    @validator('confirm_password')
-    def passwords_match(cls, v, values, **kwargs):
-        if 'password' in values and v != values['password']:
-            raise ValueError('passwords do not match')
-        return v
-    
-    @validator('password')
-    def password_strength(cls, v):
-        if len(v) < 8:
-            raise ValueError('password must be at least 8 characters')
-        if not any(char.isdigit() for char in v):
-            raise ValueError('password must contain at least one digit')
-        if not any(char.isupper() for char in v):
-            raise ValueError('password must contain at least one uppercase letter')
-        return v
-
-
-class UserUpdate(BaseModel):
-    full_name: Optional[str] = None
-    bio: Optional[str] = None
-    phone_number: Optional[str] = None
-    country: Optional[str] = None
-    city: Optional[str] = None
-    profile_picture_url: Optional[str] = None
-
-
-class UserInDB(UserBase):
-    id: int
-    is_active: bool
-    is_verified: bool
-    experience_points: int = 0
-    current_level: int = 1
-    badges: List[str] = []
-    created_at: datetime
-    last_login: Optional[datetime] = None
-    
-    class Config:
-        from_attributes = True
-
-
-class UserResponse(UserInDB):
-    pass
+class LoginRequest(BaseModel):
+    username: str  # Can be email or username
+    password: str
 
 
 class Token(BaseModel):
@@ -81,14 +43,8 @@ class Token(BaseModel):
     token_type: str = "bearer"
 
 
-class TokenData(BaseModel):
-    user_id: Optional[int] = None
-    role: Optional[str] = None
-
-
-class LoginRequest(BaseModel):
-    username: str
-    password: str
+class TokenRefresh(BaseModel):
+    refresh_token: str
 
 
 class PasswordResetRequest(BaseModel):
@@ -97,4 +53,68 @@ class PasswordResetRequest(BaseModel):
 
 class PasswordResetConfirm(BaseModel):
     token: str
-    new_password: str
+    password: str = Field(..., min_length=8)
+
+
+class PasswordChange(BaseModel):
+    current_password: str
+    new_password: str = Field(..., min_length=8)
+
+
+# ============== User Schemas ==============
+
+class UserBase(BaseModel):
+    email: EmailStr
+    username: str
+    full_name: Optional[str] = None
+    role: UserRole
+    gender: Optional[Gender] = None
+    bio: Optional[str] = None
+    profile_picture_url: Optional[str] = None
+    phone_number: Optional[str] = None
+    country: Optional[str] = None
+    city: Optional[str] = None
+
+
+class UserUpdate(BaseModel):
+    full_name: Optional[str] = None
+    bio: Optional[str] = None
+    phone_number: Optional[str] = None
+    country: Optional[str] = None
+    city: Optional[str] = None
+    gender: Optional[Gender] = None
+
+
+class UserResponse(BaseModel):
+    id: str
+    email: EmailStr
+    username: str
+    full_name: Optional[str] = None
+    role: UserRole
+    gender: Optional[Gender] = None
+    bio: Optional[str] = None
+    profile_picture_url: Optional[str] = None
+    phone_number: Optional[str] = None
+    country: Optional[str] = None
+    city: Optional[str] = None
+    experience_points: int = 0
+    current_level: int = 1
+    is_verified: bool = False
+    created_at: datetime
+    last_login: Optional[datetime] = None
+
+    class Config:
+        from_attributes = True
+
+
+class UserPublicResponse(BaseModel):
+    """Public user info (for other users to see)."""
+    id: str
+    username: str
+    full_name: Optional[str] = None
+    profile_picture_url: Optional[str] = None
+    bio: Optional[str] = None
+    current_level: int = 1
+    
+    class Config:
+        from_attributes = True

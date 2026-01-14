@@ -1,0 +1,281 @@
+/**
+ * FutureSkillsSyntax Design System - Design Tokens
+ * ================================================
+ * CSS Custom Properties for colors, typography, spacing, shadows, and borders
+ */
+
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+
+:root {
+  /* ============================================
+     COLOR SYSTEM
+     ============================================ */
+  
+  /* Primary - Indigo */
+  --color-primary-50: #EEF2FF;
+  --color-primary-100: #E0E7FF;
+  --color-primary-200: #C7D2FE;
+  --color-primary-300: #A5B4FC;
+  --color-primary-400: #818CF8;
+  --color-primary-500: #6366F1;
+  --color-primary: #4F46E5;
+  --color-primary-600: #4F46E5;
+  --color-primary-700: #4338CA;
+  --color-primary-800: #3730A3;
+  --color-primary-900: #312E81;
+  --color-primary-950: #1E1B4B;
+  
+  /* Secondary - Emerald */
+  --color-secondary-50: #ECFDF5;
+  --color-secondary-100: #D1FAE5;
+  --color-secondary-200: #A7F3D0;
+  --color-secondary-300: #6EE7B7;
+  --color-secondary-400: #34D399;
+  --color-secondary: #10B981;
+  --color-secondary-500: #10B981;
+  --color-secondary-600: #059669;
+  --color-secondary-700: #047857;
+  --color-secondary-800: #065F46;
+  --color-secondary-900: #064E3B;
+  --color-secondary-950: #022C22;
+  
+  /* Accent - Amber */
+  --color-accent-50: #FFFBEB;
+  --color-accent-100: #FEF3C7;
+  --color-accent-200: #FDE68A;
+  --color-accent-300: #FCD34D;
+  --color-accent-400: #FBBF24;
+  --color-accent: #F59E0B;
+  --color-accent-500: #F59E0B;
+  --color-accent-600: #D97706;
+  --color-accent-700: #B45309;
+  --color-accent-800: #92400E;
+  --color-accent-900: #78350F;
+  --color-accent-950: #451A03;
+  
+  /* Backgrounds */
+  --color-bg-white: #FFFFFF;
+  --color-bg-light: #F9FAFB;
+  --color-bg-dark: #111827;
+  --color-bg-primary: var(--color-bg-white);
+  --color-bg-secondary: var(--color-bg-light);
+  --color-bg-tertiary: #F3F4F6;
+  
+  /* Foreground/Text */
+  --color-text-primary: #111827;
+  --color-text-secondary: #4B5563;
+  --color-text-tertiary: #6B7280;
+  --color-text-muted: #9CA3AF;
+  --color-text-inverse: #FFFFFF;
+  
+  /* Semantic Colors - Success */
+  --color-success-50: #F0FDF4;
+  --color-success-100: #DCFCE7;
+  --color-success-200: #BBF7D0;
+  --color-success-300: #86EFAC;
+  --color-success-400: #4ADE80;
+  --color-success: #22C55E;
+  --color-success-500: #22C55E;
+  --color-success-600: #16A34A;
+  --color-success-700: #15803D;
+  --color-success-800: #166534;
+  --color-success-900: #14532D;
+  
+  /* Semantic Colors - Error */
+  --color-error-50: #FEF2F2;
+  --color-error-100: #FEE2E2;
+  --color-error-200: #FECACA;
+  --color-error-300: #FCA5A5;
+  --color-error-400: #F87171;
+  --color-error: #EF4444;
+  --color-error-500: #EF4444;
+  --color-error-600: #DC2626;
+  --color-error-700: #B91C1C;
+  --color-error-800: #991B1B;
+  --color-error-900: #7F1D1D;
+  
+  /* Semantic Colors - Warning */
+  --color-warning-50: #FFFBEB;
+  --color-warning-100: #FEF3C7;
+  --color-warning-200: #FDE68A;
+  --color-warning-300: #FCD34D;
+  --color-warning-400: #FBBF24;
+  --color-warning: #F59E0B;
+  --color-warning-500: #F59E0B;
+  --color-warning-600: #D97706;
+  --color-warning-700: #B45309;
+  --color-warning-800: #92400E;
+  --color-warning-900: #78350F;
+  
+  /* Semantic Colors - Info */
+  --color-info-50: #EFF6FF;
+  --color-info-100: #DBEAFE;
+  --color-info-200: #BFDBFE;
+  --color-info-300: #93C5FD;
+  --color-info-400: #60A5FA;
+  --color-info: #3B82F6;
+  --color-info-500: #3B82F6;
+  --color-info-600: #2563EB;
+  --color-info-700: #1D4ED8;
+  --color-info-800: #1E40AF;
+  --color-info-900: #1E3A8A;
+  
+  /* Borders */
+  --color-border-light: #E5E7EB;
+  --color-border-default: #D1D5DB;
+  --color-border-dark: #9CA3AF;
+  
+  /* ============================================
+     TYPOGRAPHY
+     ============================================ */
+  
+  /* Font Family */
+  --font-family-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+  --font-family-mono: 'Roboto Mono', 'Fira Code', Consolas, Monaco, monospace;
+  
+  /* Font Sizes */
+  --font-size-xs: 0.75rem;     /* 12px */
+  --font-size-sm: 0.875rem;    /* 14px */
+  --font-size-base: 1rem;      /* 16px */
+  --font-size-lg: 1.125rem;    /* 18px */
+  --font-size-xl: 1.25rem;     /* 20px */
+  --font-size-2xl: 1.5rem;     /* 24px */
+  --font-size-3xl: 1.875rem;   /* 30px */
+  --font-size-4xl: 2.25rem;    /* 36px */
+  --font-size-5xl: 3rem;       /* 48px */
+  --font-size-6xl: 3.75rem;    /* 60px */
+  
+  /* Line Heights */
+  --line-height-tight: 1.167;
+  --line-height-snug: 1.222;
+  --line-height-normal: 1.267;
+  --line-height-relaxed: 1.5;
+  --line-height-loose: 1.75;
+  
+  /* Heading Sizes (per spec) */
+  --font-size-h1: 3rem;        /* 48px */
+  --line-height-h1: 3.5rem;    /* 56px */
+  --font-size-h2: 2.25rem;     /* 36px */
+  --line-height-h2: 2.75rem;   /* 44px */
+  --font-size-h3: 1.875rem;    /* 30px */
+  --line-height-h3: 2.375rem;  /* 38px */
+  --font-size-body: 1rem;      /* 16px */
+  --line-height-body: 1.5rem;  /* 24px */
+  --font-size-small: 0.875rem; /* 14px */
+  --line-height-small: 1.25rem;/* 20px */
+  
+  /* Font Weights */
+  --font-weight-light: 300;
+  --font-weight-regular: 400;
+  --font-weight-medium: 500;
+  --font-weight-semibold: 600;
+  --font-weight-bold: 700;
+  
+  /* ============================================
+     SPACING SCALE
+     ============================================ */
+  
+  --space-0: 0;
+  --space-1: 0.25rem;   /* 4px */
+  --space-2: 0.5rem;    /* 8px */
+  --space-3: 0.75rem;   /* 12px */
+  --space-4: 1rem;      /* 16px */
+  --space-5: 1.25rem;   /* 20px */
+  --space-6: 1.5rem;    /* 24px */
+  --space-8: 2rem;      /* 32px */
+  --space-10: 2.5rem;   /* 40px */
+  --space-12: 3rem;     /* 48px */
+  --space-16: 4rem;     /* 64px */
+  --space-20: 5rem;     /* 80px */
+  --space-24: 6rem;     /* 96px */
+  --space-32: 8rem;     /* 128px */
+  
+  /* ============================================
+     SHADOWS
+     ============================================ */
+  
+  --shadow-none: none;
+  --shadow-sm: 0px 1px 2px rgba(0, 0, 0, 0.05);
+  --shadow-md: 0px 4px 6px rgba(0, 0, 0, 0.07);
+  --shadow-lg: 0px 10px 15px rgba(0, 0, 0, 0.1);
+  --shadow-xl: 0px 20px 25px rgba(0, 0, 0, 0.15);
+  --shadow-2xl: 0px 25px 50px rgba(0, 0, 0, 0.25);
+  --shadow-inner: inset 0 2px 4px rgba(0, 0, 0, 0.06);
+  
+  /* Colored Shadows */
+  --shadow-primary: 0px 4px 14px rgba(79, 70, 229, 0.25);
+  --shadow-secondary: 0px 4px 14px rgba(16, 185, 129, 0.25);
+  --shadow-accent: 0px 4px 14px rgba(245, 158, 11, 0.25);
+  
+  /* ============================================
+     BORDER RADIUS
+     ============================================ */
+  
+  --radius-none: 0px;
+  --radius-sm: 0.25rem;   /* 4px */
+  --radius-md: 0.5rem;    /* 8px */
+  --radius-lg: 0.75rem;   /* 12px */
+  --radius-xl: 1rem;      /* 16px */
+  --radius-2xl: 1.5rem;   /* 24px */
+  --radius-full: 999px;
+  
+  /* ============================================
+     TRANSITIONS
+     ============================================ */
+  
+  --transition-fast: 150ms ease;
+  --transition-normal: 200ms ease;
+  --transition-slow: 300ms ease;
+  --transition-slower: 500ms ease;
+  
+  /* ============================================
+     Z-INDEX SCALE
+     ============================================ */
+  
+  --z-dropdown: 1000;
+  --z-sticky: 1020;
+  --z-fixed: 1030;
+  --z-modal-backdrop: 1040;
+  --z-modal: 1050;
+  --z-popover: 1060;
+  --z-tooltip: 1070;
+}
+
+/* ============================================
+   DARK MODE COLORS
+   ============================================ */
+
+.dark,
+[data-theme="dark"] {
+  /* Backgrounds */
+  --color-bg-primary: #111827;
+  --color-bg-secondary: #1F2937;
+  --color-bg-tertiary: #374151;
+  
+  /* Text */
+  --color-text-primary: #F9FAFB;
+  --color-text-secondary: #E5E7EB;
+  --color-text-tertiary: #D1D5DB;
+  --color-text-muted: #9CA3AF;
+  --color-text-inverse: #111827;
+  
+  /* Borders */
+  --color-border-light: #374151;
+  --color-border-default: #4B5563;
+  --color-border-dark: #6B7280;
+  
+  /* Adjusted Primary for dark mode */
+  --color-primary: #6366F1;
+  --color-primary-600: #6366F1;
+  
+  /* Adjusted Shadows for dark mode */
+  --shadow-sm: 0px 1px 2px rgba(0, 0, 0, 0.3);
+  --shadow-md: 0px 4px 6px rgba(0, 0, 0, 0.4);
+  --shadow-lg: 0px 10px 15px rgba(0, 0, 0, 0.5);
+  --shadow-xl: 0px 20px 25px rgba(0, 0, 0, 0.6);
+  
+  /* Colored Shadows - Dark Mode */
+  --shadow-primary: 0px 4px 14px rgba(99, 102, 241, 0.35);
+  --shadow-secondary: 0px 4px 14px rgba(52, 211, 153, 0.35);
+  --shadow-accent: 0px 4px 14px rgba(251, 191, 36, 0.35);
+}

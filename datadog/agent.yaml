@@ -1,0 +1,22 @@
+# datadog/agent.yaml
+api_key: ${DATADOG_API_KEY}
+
+logs_enabled: true
+logs_config:
+  container_collect_all: true
+
+process_config:
+  enabled: true
+
+# Docker integration
+docker_root: /host/var/lib/docker
+docker_socket: /var/run/docker.sock
+
+# Custom metrics
+extra_checksd: /etc/datadog-agent/checks.d/
+
+# Log processing rules
+log_processing_rules:
+  - type: multi_line
+    name: python_exceptions
+    pattern: '^Traceback|^\s+File'

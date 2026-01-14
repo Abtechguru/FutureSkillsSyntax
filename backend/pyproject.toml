@@ -5,10 +5,10 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "futureskillssyntax"
 version = "0.1.0"
-description = "FutureSkillsSyntax - Career Path Advisor with Mentorship"
+description = "OnaAseyori - Career Path Advisor with Mentorship"
 readme = "README.md"
 authors = [
-    {name = "FutureSkillsSyntax Team", email = "team@futureskillssyntax.com"}
+    {name = "OnaAseyori Team", email = "team@onaaseyori.com"}
 ]
 license = {text = "MIT"}
 requires-python = ">=3.11"
@@ -61,5 +61,5 @@ warn_return_any = true
 warn_unused_configs = true
 
 [project.urls]
-Homepage = "https://github.com/yourusername/futureskillssyntax"
+Homepage = "https://github.com/Abtechguru/futureskillssyntax"
 Documentation = "https://docs.futureskillssyntax.com"

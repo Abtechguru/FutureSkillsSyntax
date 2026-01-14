@@ -1,0 +1,110 @@
+# docker-compose.ssl.yml
+version: '3.8'
+
+services:
+  nginx-proxy:
+    image: nginxproxy/nginx-proxy:alpine
+    container_name: nginx-proxy
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - /var/run/docker.sock:/tmp/docker.sock:ro
+      - ./certs:/etc/nginx/certs:ro
+      - ./vhost.d:/etc/nginx/vhost.d
+      - ./html:/usr/share/nginx/html
+      - ./nginx/custom.conf:/etc/nginx/conf.d/custom.conf
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf
+    networks:
+      - proxy-network
+    labels:
+      - "com.github.jrcs.letsencrypt_nginx_proxy_companion.nginx_proxy"
+
+  nginx-proxy-letsencrypt:
+    image: nginxproxy/acme-companion:latest
+    container_name: nginx-proxy-acme
+    restart: unless-stopped
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - ./certs:/etc/nginx/certs:rw
+      - ./vhost.d:/etc/nginx/vhost.d
+      - ./html:/usr/share/nginx/html
+      - ./acme:/etc/acme.sh
+    environment:
+      - DEFAULT_EMAIL=admin@futureskillssyntax.com
+      - ACME_CA_URI=https://acme-v02.api.letsencrypt.org/directory
+      - DEBUG=false
+    depends_on:
+      - nginx-proxy
+    networks:
+      - proxy-network
+
+  # Backend service with SSL labels
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile.prod
+    container_name: futureskills-backend
+    restart: unless-stopped
+    environment:
+      - VIRTUAL_HOST=api.futureskillssyntax.com
+      - VIRTUAL_PORT=8000
+      - VIRTUAL_PROTO=https
+      - LETSENCRYPT_HOST=api.futureskillssyntax.com
+      - LETSENCRYPT_EMAIL=admin@futureskillssyntax.com
+    volumes:
+      - ./logs/backend:/var/log/futureskills
+    expose:
+      - "8000"
+    networks:
+      - proxy-network
+      - app-network
+    depends_on:
+      - nginx-proxy-letsencrypt
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.backend.rule=Host(`api.futureskillssyntax.com`)"
+      - "traefik.http.routers.backend.tls=true"
+      - "traefik.http.routers.backend.tls.certresolver=letsencrypt"
+      - "traefik.http.services.backend.loadbalancer.server.port=8000"
+
+  # Frontend service with SSL labels
+  frontend:
+    build:
+      context: ./frontend/web
+      dockerfile: Dockerfile.prod
+    container_name: futureskills-frontend
+    restart: unless-stopped
+    environment:
+      - VIRTUAL_HOST=app.futureskillssyntax.com,www.futureskillssyntax.com
+      - VIRTUAL_PORT=3000
+      - VIRTUAL_PROTO=https
+      - LETSENCRYPT_HOST=app.futureskillssyntax.com,www.futureskillssyntax.com
+      - LETSENCRYPT_EMAIL=admin@futureskillssyntax.com
+    expose:
+      - "3000"
+    networks:
+      - proxy-network
+      - app-network
+    depends_on:
+      - nginx-proxy-letsencrypt
+      - backend
+
+networks:
+  proxy-network:
+    driver: bridge
+    name: futureskills-proxy
+  app-network:
+    driver: bridge
+    name: futureskills-app
+
+volumes:
+  certs:
+    driver: local
+  vhost.d:
+    driver: local
+  html:
+    driver: local
+  acme:
+    driver: local
