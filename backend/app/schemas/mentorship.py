@@ -53,10 +53,10 @@ class SessionComplete(BaseModel):
 
 
 class SessionResponse(BaseModel):
-    id: str
-    assignment_id: str
-    mentor_id: str
-    mentee_id: str
+    id: int
+    assignment_id: int
+    mentor_id: int
+    mentee_id: int
     title: str
     description: Optional[str] = None
     topic: Optional[str] = None
@@ -76,19 +76,83 @@ class SessionResponse(BaseModel):
         from_attributes = True
 
 
+# ============== Task Schemas ==============
+
+class TaskCreate(BaseModel):
+    assignment_id: int
+    title: str = Field(..., max_length=200)
+    description: Optional[str] = None
+    code_stub: Optional[str] = None
+    language: str = "javascript"
+    due_date: Optional[datetime] = None
+
+
+class SubmissionCreate(BaseModel):
+    task_id: int
+    submitted_code: str
+    output: Optional[str] = None
+
+
+class TaskResponse(BaseModel):
+    id: int
+    assignment_id: int
+    title: str
+    description: Optional[str] = None
+    code_stub: Optional[str] = None
+    language: str
+    due_date: Optional[datetime] = None
+    status: str
+    mentor_feedback: Optional[str] = None
+    grade: Optional[str] = None
+    created_at: datetime
+    
+    class Config:
+        from_attributes = True
+
+
+class SubmissionResponse(BaseModel):
+    id: int
+    task_id: int
+    mentee_id: int
+    submitted_code: str
+    output: Optional[str] = None
+    mentor_comments: Optional[str] = None
+    submitted_at: datetime
+    
+    class Config:
+        from_attributes = True
+
+
+# ============== Collaboration Schemas ==============
+
+class CollaborationSync(BaseModel):
+    session_id: int
+    code: str
+    language: Optional[str] = None
+
+
+class CollaborationResponse(CollaborationSync):
+    id: int
+    is_active: bool
+    last_updated_at: datetime
+    
+    class Config:
+        from_attributes = True
+
+
 # ============== Assignment Schemas ==============
 
 class MentorInfo(BaseModel):
-    id: str
+    id: int
     username: str
     full_name: Optional[str] = None
     profile_picture_url: Optional[str] = None
 
 
 class AssignmentResponse(BaseModel):
-    id: str
-    mentor_id: str
-    mentee_id: str
+    id: int
+    mentor_id: int
+    mentee_id: int
     mentor: Optional[MentorInfo] = None
     mentee: Optional[MentorInfo] = None
     start_date: datetime
@@ -99,6 +163,7 @@ class AssignmentResponse(BaseModel):
     overall_progress: float
     mentee_satisfaction: Optional[float] = None
     created_at: datetime
+    tasks: List[TaskResponse] = []
     
     class Config:
         from_attributes = True

@@ -18,9 +18,87 @@ from app.schemas.mentorship import (
     SessionUpdate,
     SessionResponse,
     SessionComplete,
+    TaskCreate,
+    TaskResponse,
+    SubmissionCreate,
+    SubmissionResponse,
 )
+from app.models.mentorship import MentorshipTask, TaskSubmission
+from app.services.code_execution import execute_code
 
 router = APIRouter()
+
+
+# ============== Tasks & Assignments ==============
+
+@router.post("/tasks", response_model=TaskResponse, status_code=status.HTTP_201_CREATED)
+async def create_task(
+    task_data: TaskCreate,
+    current_user: Dict[str, Any] = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
+):
+    """Create a new task/assignment for a mentee."""
+    if current_user["role"] != "mentor" and current_user["role"] != "admin":
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Only mentors can create tasks"
+        )
+    
+    task = MentorshipTask(**task_data.model_dump())
+    db.add(task)
+    await db.commit()
+    await db.refresh(task)
+    return task
+
+@router.get("/assignments/{assignment_id}/tasks", response_model=List[TaskResponse])
+async def get_assignment_tasks(
+    assignment_id: int,
+    current_user: Dict[str, Any] = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
+):
+    """Get all tasks for a specific mentorship assignment."""
+    result = await db.execute(
+        select(MentorshipTask).where(MentorshipTask.assignment_id == assignment_id)
+    )
+    return result.scalars().all()
+
+@router.post("/tasks/{task_id}/submit", response_model=SubmissionResponse)
+async def submit_task(
+    task_id: int,
+    submission_data: SubmissionCreate,
+    current_user: Dict[str, Any] = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
+):
+    """Submit a task completion."""
+    # Verify task exists and mentee is assigned
+    task_result = await db.execute(select(MentorshipTask).where(MentorshipTask.id == task_id))
+    task = task_result.scalar_one_or_none()
+    if not task:
+        raise HTTPException(status_code=404, detail="Task not found")
+    
+    submission = TaskSubmission(
+        task_id=task_id,
+        mentee_id=current_user["user_id"],
+        **submission_data.model_dump(exclude={"task_id"})
+    )
+    
+    task.status = "submitted"
+    db.add(submission)
+    await db.commit()
+    await db.refresh(submission)
+    return submission
+
+# ============== Code Execution ==============
+
+@router.post("/execute", tags=["IDE"])
+async def run_code(
+    code: str,
+    language: str,
+    current_user: Dict[str, Any] = Depends(get_current_user)
+):
+    """Execute code in the integrated IDE."""
+    result = await execute_code(language, code)
+    return result
 
 
 # ============== Assignments ==============

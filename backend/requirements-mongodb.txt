@@ -1,0 +1,3 @@
+# MongoDB Dependencies for Goals System
+motor==3.3.2  # Async MongoDB driver
+pymongo==4.6.1  # MongoDB driver

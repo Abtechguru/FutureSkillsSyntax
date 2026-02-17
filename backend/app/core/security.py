@@ -8,7 +8,7 @@ from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from app.core.config import settings
 
 # Password hashing
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+pwd_context = CryptContext(schemes=["pbkdf2_sha256"], deprecated="auto")
 
 # OAuth2 bearer token
 security = HTTPBearer()
@@ -60,6 +60,39 @@ def decode_token(token: str) -> dict:
         )
 
 
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import select
+from app.models.user import User
+
+async def get_current_user_from_token(token: str, db: AsyncSession) -> User:
+    """Get current user from token string."""
+    payload = decode_token(token)
+    
+    if payload.get("type") != "access":
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid token type",
+        )
+    
+    user_id = payload.get("sub")
+    if user_id is None:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Could not validate credentials",
+        )
+    
+    result = await db.execute(select(User).where(User.id == int(user_id)))
+    user = result.scalar_one_or_none()
+    
+    if user is None:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="User not found",
+        )
+    
+    return user
+
+
 async def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(security)):
     """Dependency to get current user from token."""
     token = credentials.credentials
@@ -78,4 +111,4 @@ async def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(s
             detail="Could not validate credentials",
         )
     
-    return {"user_id": user_id, "role": payload.get("role", "user")}
+    return {"user_id": int(user_id), "role": payload.get("role", "user")}

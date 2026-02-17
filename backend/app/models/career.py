@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, Float, Text, ForeignKey, DateTime, JSON, Enum
+from sqlalchemy import Column, Integer, String, Float, Text, ForeignKey, DateTime, JSON, Enum, Boolean
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 import enum
@@ -83,3 +83,53 @@ class CareerAssessment(Base):
     # Relationships
     user = relationship("User", back_populates="career_assessments")
     recommended_role = relationship("CareerRole", back_populates="assessments")
+
+
+class LearningPath(Base):
+    __tablename__ = "learning_paths"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    title = Column(String(200), nullable=False)
+    description = Column(Text, nullable=True)
+    
+    # Relationships
+    career_roles = relationship("CareerRole", back_populates="learning_path")
+    modules = relationship("Module", back_populates="learning_path")
+
+
+class Module(Base):
+    __tablename__ = "modules"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    learning_path_id = Column(Integer, ForeignKey("learning_paths.id"))
+    title = Column(String(200), nullable=False)
+    description = Column(Text, nullable=True)
+    
+    # Relationships
+    learning_path = relationship("LearningPath", back_populates="modules")
+    steps = relationship("Step", back_populates="module")
+
+
+class Step(Base):
+    __tablename__ = "steps"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    module_id = Column(Integer, ForeignKey("modules.id"))
+    title = Column(String(200), nullable=False)
+    content = Column(Text, nullable=True)
+    
+    # Relationships
+    module = relationship("Module", back_populates="steps")
+
+
+class LearningProgress(Base):
+    __tablename__ = "learning_progress"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    step_id = Column(Integer, ForeignKey("steps.id"))
+    is_completed = Column(Boolean, default=False)
+    completed_at = Column(DateTime(timezone=True), nullable=True)
+    
+    # Relationships
+    user = relationship("User", back_populates="learning_progress")

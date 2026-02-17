@@ -62,7 +62,7 @@ class User(Base):
     
     # Relationships
     career_assessments = relationship("CareerAssessment", back_populates="user")
-    mentorship_sessions = relationship("MentorshipSession", back_populates="mentee")
+    mentorship_sessions = relationship("MentorshipSession", foreign_keys="MentorshipSession.mentee_id", back_populates="mentee")
     mentor_assignments = relationship("MentorAssignment", foreign_keys="MentorAssignment.mentor_id", back_populates="mentor")
     mentee_assignments = relationship("MentorAssignment", foreign_keys="MentorAssignment.mentee_id", back_populates="mentee")
     learning_progress = relationship("LearningProgress", back_populates="user")

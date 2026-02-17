@@ -6,6 +6,7 @@ uvicorn[standard]==0.27.0
 python-multipart==0.0.6
 python-jose[cryptography]==3.3.0
 passlib[bcrypt]==1.7.4
+bcrypt==4.0.1
 
 # Database
 sqlalchemy[asyncio]==2.0.25
@@ -23,9 +24,11 @@ email-validator==2.1.0
 # Redis (optional caching)
 redis==5.0.1
 aioredis==2.0.1
+celery==5.3.6
+flower==2.0.1
 
 # HTTP Client
-httpx==0.26.0
+httpx==0.24.1
 aiohttp==3.9.1
 
 # Utilities
@@ -38,7 +41,7 @@ sentry-sdk[fastapi]==1.39.1
 # Development
 pytest==7.4.4
 pytest-asyncio==0.23.3
-httpx==0.26.0
+httpx==0.24.1
 
 # Type checking
 mypy==1.8.0

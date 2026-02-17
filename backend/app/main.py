@@ -15,6 +15,7 @@ import time
 from app.api.v1.api import api_router
 from app.core.config import settings
 from app.core.database import init_db
+from app.core.mongodb import connect_to_mongodb, close_mongodb_connection
 
 # Configure logging
 logging.basicConfig(
@@ -39,10 +40,21 @@ async def lifespan(app: FastAPI):
         logger.error(f"Database initialization failed: {e}")
         raise
     
+    # Initialize MongoDB for Goals system
+    try:
+        await connect_to_mongodb()
+        logger.info("MongoDB connected - Goals system ready")
+    except Exception as e:
+        logger.error(f"MongoDB connection failed: {e}")
+        # Don't raise - allow app to start without MongoDB
+        logger.warning("Application starting without MongoDB Goals system")
+    
     yield
     
     # Shutdown
     logger.info("Shutting down application")
+    await close_mongodb_connection()
+    logger.info("MongoDB connection closed")
 
 
 # Create FastAPI application

@@ -28,6 +28,11 @@ class Settings(BaseSettings):
     SUPABASE_ANON_KEY: str = ""
     SUPABASE_SERVICE_ROLE_KEY: str = ""
     
+    # MongoDB Configuration (for Goals system)
+    MONGODB_URI: str = "mongodb+srv://careernig24:<db_password>@cluster0.c4h1ona.mongodb.net/?appName=Cluster0"
+    MONGODB_DB_NAME: str = "futureskills"
+    MONGODB_PASSWORD: Optional[str] = None  # Set in .env
+    
     # Redis (optional - for caching)
     REDIS_URL: str = "redis://localhost:6379/0"
     REDIS_CACHE_TTL: int = 300
@@ -47,7 +52,13 @@ class Settings(BaseSettings):
     
     # File Uploads
     MAX_UPLOAD_SIZE: int = 5 * 1024 * 1024  # 5MB
-    ALLOWED_EXTENSIONS: List[str] = ["jpg", "jpeg", "png", "gif", "pdf", "doc", "docx"]
+    ALLOWED_EXTENSIONS: Optional[str] = "jpg,jpeg,png,gif,pdf,doc,docx"
+    
+    def get_allowed_extensions(self) -> List[str]:
+        """Get allowed extensions as a list."""
+        if isinstance(self.ALLOWED_EXTENSIONS, str):
+            return [ext.strip() for ext in self.ALLOWED_EXTENSIONS.split(",")]
+        return self.ALLOWED_EXTENSIONS or []
     
     # Gamification
     INITIAL_XP: int = 100
