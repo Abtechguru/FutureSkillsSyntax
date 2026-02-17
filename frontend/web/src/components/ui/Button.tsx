@@ -5,7 +5,7 @@ import { Loader2 } from 'lucide-react'
 
 interface ButtonProps extends Omit<React.ButtonHTMLAttributes<HTMLButtonElement>, keyof MotionProps>, MotionProps {
   variant?: 'default' | 'primary' | 'secondary' | 'outline' | 'ghost' | 'link' | 'danger'
-  size?: 'sm' | 'md' | 'lg' | 'xl'
+  size?: 'xs' | 'sm' | 'md' | 'lg' | 'xl'
   loading?: boolean
   fullWidth?: boolean
   rounded?: boolean
@@ -57,6 +57,7 @@ const Button = forwardRef<HTMLButtonElement, ButtonProps>(
     }
 
     const sizeClasses = {
+      xs: 'h-7 px-2 text-[10px]',
       sm: 'h-8 px-3 text-xs',
       md: 'h-10 px-4 text-sm',
       lg: 'h-12 px-6 text-base',
@@ -64,6 +65,7 @@ const Button = forwardRef<HTMLButtonElement, ButtonProps>(
     }
 
     const iconSizeClasses = {
+      xs: 'w-2.5 h-2.5',
       sm: 'w-3 h-3',
       md: 'w-4 h-4',
       lg: 'w-5 h-5',

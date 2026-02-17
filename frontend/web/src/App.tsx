@@ -17,6 +17,7 @@ const VerifyEmail = lazy(() => import('@/pages/Auth/VerifyEmail'))
 const Dashboard = lazy(() => import('@/pages/Dashboard'))
 const Profile = lazy(() => import('@/pages/Profile/UserProfile'))
 const AdminDashboard = lazy(() => import('@/pages/Admin/Dashboard'))
+const AdminLogin = lazy(() => import('@/pages/Admin/Login'))
 const NotFound = lazy(() => import('@/pages/NotFound'))
 
 import ProtectedRoute from '@/components/auth/ProtectedRoute'
@@ -46,6 +47,7 @@ function App() {
               <Route path="forgot-password" element={<ForgotPassword />} />
               <Route path="reset-password/:token" element={<ResetPassword />} />
               <Route path="verify-email" element={<VerifyEmail />} />
+              <Route path="admin/login" element={<AdminLogin />} />
 
               <Route element={<ProtectedRoute />}>
                 <Route path="dashboard" element={<Dashboard />} />

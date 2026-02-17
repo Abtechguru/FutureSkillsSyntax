@@ -44,6 +44,8 @@ export interface MentorSession {
     type: 'video' | 'chat' | 'phone'
     status: 'pending' | 'confirmed' | 'in_progress' | 'completed' | 'cancelled'
     meetingUrl?: string
+    classroom_link?: string
+    assignment_id?: number
     notes: SessionNote[]
     actionItems: ActionItem[]
     recording?: {
@@ -217,8 +219,39 @@ class MentorshipService {
         return response.data
     }
 
-    async updateMyAvailability(slots: AvailabilitySlot[]): Promise<void> {
-        await api.put(`${this.baseUrl}/availability`, { slots })
+    // Tasks & Submissions
+    async addTask(data: any): Promise<any> {
+        const response = await api.post(`${this.baseUrl}/tasks`, data)
+        return response.data
+    }
+
+    async getAssignmentTasks(assignmentId: number): Promise<any[]> {
+        const response = await api.get(`${this.baseUrl}/assignments/${assignmentId}/tasks`)
+        return response.data
+    }
+
+    async submitTask(taskId: number, code: string, output: string): Promise<any> {
+        const response = await api.post(`${this.baseUrl}/tasks/${taskId}/submit`, {
+            submitted_code: code,
+            output
+        })
+        return response.data
+    }
+
+    // Payments
+    async initializePaystack(amount: number, email: string) {
+        const response = await api.post('/api/v1/payment/paystack/initialize', { amount, email })
+        return response.data
+    }
+
+    async verifyPaystack(reference: string) {
+        const response = await api.get(`/api/v1/payment/paystack/verify?reference=${reference}`)
+        return response.data
+    }
+
+    async submitLocalProof(amount: number, evidenceUrl: string, purpose: string) {
+        const response = await api.post('/api/v1/payment/local/submit', { amount, evidence_url: evidenceUrl, purpose })
+        return response.data
     }
 }
 

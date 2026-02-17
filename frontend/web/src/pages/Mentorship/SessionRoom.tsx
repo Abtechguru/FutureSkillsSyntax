@@ -2,83 +2,53 @@ import React, { useState, useEffect, useRef } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
-    Video,
-    VideoOff,
-    Mic,
-    MicOff,
-    Phone,
-    Monitor,
-    MessageSquare,
-    Code,
-    PenTool,
-    FileText,
-    Settings,
-    Users,
     ChevronLeft,
-    ChevronRight,
-    Send,
     Plus,
-    Check,
-    Circle,
-    Square,
-    Type,
-    Eraser,
-    Download,
-    Play,
-    Pause,
+    BookOpen,
+    ExternalLink,
+    Terminal,
+    MessageSquare,
+    FileText
 } from 'lucide-react'
 import { toast } from 'react-hot-toast'
 
 import Button from '@/components/ui/Button'
-import { Badge } from '@/components/ui/Badge'
-import { Input } from '@/components/ui/Input'
-import { Textarea } from '@/components/ui/Textarea'
-import { Avatar } from '@/components/ui/Avatar'
-import mentorshipService, { MentorSession, SessionNote, ActionItem } from '@/services/mentorship'
+import Badge from '@/components/ui/Badge'
+import Input from '@/components/ui/Input'
+import mentorshipService from '@/services/mentorship'
+import type { MentorSession } from '@/services/mentorship'
 import { cn } from '@/utils/cn'
+import CodePlayground from '@/components/mentorship/CodePlayground'
+import { useAuth } from '@/hooks/useAuth'
 
-type SidePanel = 'chat' | 'code' | 'whiteboard' | 'notes' | null
+type SidePanel = 'chat' | 'code' | 'whiteboard' | 'notes' | 'tasks' | 'classroom' | null
 
 const SessionRoom: React.FC = () => {
     const { id } = useParams<{ id: string }>()
     const navigate = useNavigate()
-    const canvasRef = useRef<HTMLCanvasElement>(null)
-    const codeEditorRef = useRef<HTMLTextAreaElement>(null)
+    const { user } = useAuth()
 
     // Session state
     const [session, setSession] = useState<MentorSession | null>(null)
     const [loading, setLoading] = useState(true)
 
-    // Video controls
-    const [isVideoOn, setIsVideoOn] = useState(true)
-    const [isAudioOn, setIsAudioOn] = useState(true)
-    const [isScreenSharing, setIsScreenSharing] = useState(false)
-    const [isRecording, setIsRecording] = useState(false)
-
     // Side panel
-    const [activePanel, setActivePanel] = useState<SidePanel>('chat')
+    const [activePanel, setActivePanel] = useState<SidePanel>('code')
 
-    // Chat state
-    const [messages, setMessages] = useState<{ userId: string; name: string; content: string; time: string }[]>([])
-    const [newMessage, setNewMessage] = useState('')
+    // Classroom state
+    const [classroomLink, setClassroomLink] = useState('')
 
-    // Code editor state
-    const [code, setCode] = useState('// Start coding here...\n\nfunction example() {\n  console.log("Hello, world!");\n}')
-    const [codeLanguage, setCodeLanguage] = useState('javascript')
+    // Tasks state
+    const [tasks, setTasks] = useState<any[]>([])
+    const [newTaskTitle, setNewTaskTitle] = useState('')
 
-    // Whiteboard state
-    const [isDrawing, setIsDrawing] = useState(false)
-    const [drawTool, setDrawTool] = useState<'pen' | 'line' | 'rect' | 'text' | 'eraser'>('pen')
-    const [drawColor, setDrawColor] = useState('#4F46E5')
-
-    // Notes state
-    const [notes, setNotes] = useState<SessionNote[]>([])
-    const [newNote, setNewNote] = useState('')
-    const [actionItems, setActionItems] = useState<ActionItem[]>([])
-    const [newActionItem, setNewActionItem] = useState('')
+    // WebSocket Ref for classroom sync
+    const socketRef = useRef<WebSocket | null>(null)
 
     useEffect(() => {
         loadSession()
+        setupCollaboration()
+        return () => socketRef.current?.close()
     }, [id])
 
     const loadSession = async () => {
@@ -86,8 +56,13 @@ const SessionRoom: React.FC = () => {
         try {
             const data = await mentorshipService.getSession(id!)
             setSession(data)
-            setNotes(data.notes || [])
-            setActionItems(data.actionItems || [])
+            if (data.classroom_link) setClassroomLink(data.classroom_link)
+
+            // Fetch tasks if assignment exists
+            if (data.assignment_id) {
+                const tasksData = await mentorshipService.getAssignmentTasks(data.assignment_id)
+                setTasks(tasksData)
+            }
         } catch (error) {
             toast.error('Failed to load session')
         } finally {
@@ -95,16 +70,36 @@ const SessionRoom: React.FC = () => {
         }
     }
 
-    // Video controls handlers
-    const toggleVideo = () => setIsVideoOn(!isVideoOn)
-    const toggleAudio = () => setIsAudioOn(!isAudioOn)
-    const toggleScreenShare = () => {
-        setIsScreenSharing(!isScreenSharing)
-        toast.success(isScreenSharing ? 'Screen sharing stopped' : 'Screen sharing started')
+    const setupCollaboration = () => {
+        const token = localStorage.getItem('token')
+        if (!token || !id) return
+
+        const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+        const hostname = window.location.hostname;
+        const port = hostname === 'localhost' ? '8000' : window.location.port;
+        const wsUrl = `${protocol}//${hostname}${port ? `:${port}` : ''}/api/v1/collaboration/${id}/ws?token=${token}`;
+
+        const socket = new WebSocket(wsUrl);
+        socketRef.current = socket;
+
+        socket.onmessage = (event) => {
+            const message = JSON.parse(event.data);
+            if (message.type === 'classroom_link') {
+                setClassroomLink(message.data.link)
+                toast.success('Live classroom link updated!')
+            }
+        };
     }
-    const toggleRecording = () => {
-        setIsRecording(!isRecording)
-        toast.success(isRecording ? 'Recording stopped' : 'Recording started')
+
+    const updateClassroomLink = () => {
+        if (!classroomLink.trim()) return
+        if (socketRef.current?.readyState === WebSocket.OPEN) {
+            socketRef.current.send(JSON.stringify({
+                type: 'classroom_link',
+                data: { link: classroomLink }
+            }))
+            toast.success('Classroom link shared with mentee!')
+        }
     }
 
     const endCall = async () => {
@@ -115,97 +110,6 @@ const SessionRoom: React.FC = () => {
         } catch (error) {
             toast.error('Failed to end session')
         }
-    }
-
-    // Chat handlers
-    const sendMessage = () => {
-        if (!newMessage.trim()) return
-        setMessages(prev => [...prev, {
-            userId: 'current',
-            name: 'You',
-            content: newMessage,
-            time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-        }])
-        setNewMessage('')
-    }
-
-    // Notes handlers
-    const addNote = async () => {
-        if (!newNote.trim()) return
-        try {
-            const note = await mentorshipService.addNote(id!, newNote)
-            setNotes(prev => [...prev, note])
-            setNewNote('')
-        } catch (error) {
-            toast.error('Failed to add note')
-        }
-    }
-
-    const addActionItem = async () => {
-        if (!newActionItem.trim()) return
-        try {
-            const item = await mentorshipService.addActionItem(id!, {
-                title: newActionItem,
-                completed: false,
-                assignedTo: 'current'
-            })
-            setActionItems(prev => [...prev, item])
-            setNewActionItem('')
-        } catch (error) {
-            toast.error('Failed to add action item')
-        }
-    }
-
-    const toggleActionItem = async (itemId: string) => {
-        try {
-            await mentorshipService.toggleActionItem(id!, itemId)
-            setActionItems(prev => prev.map(item =>
-                item.id === itemId ? { ...item, completed: !item.completed } : item
-            ))
-        } catch (error) {
-            toast.error('Failed to update action item')
-        }
-    }
-
-    // Whiteboard handlers
-    const startDrawing = (e: React.MouseEvent<HTMLCanvasElement>) => {
-        setIsDrawing(true)
-        const canvas = canvasRef.current
-        if (!canvas) return
-        const ctx = canvas.getContext('2d')
-        if (!ctx) return
-
-        const rect = canvas.getBoundingClientRect()
-        ctx.beginPath()
-        ctx.moveTo(e.clientX - rect.left, e.clientY - rect.top)
-    }
-
-    const draw = (e: React.MouseEvent<HTMLCanvasElement>) => {
-        if (!isDrawing) return
-        const canvas = canvasRef.current
-        if (!canvas) return
-        const ctx = canvas.getContext('2d')
-        if (!ctx) return
-
-        const rect = canvas.getBoundingClientRect()
-        ctx.strokeStyle = drawTool === 'eraser' ? '#ffffff' : drawColor
-        ctx.lineWidth = drawTool === 'eraser' ? 20 : 2
-        ctx.lineCap = 'round'
-        ctx.lineTo(e.clientX - rect.left, e.clientY - rect.top)
-        ctx.stroke()
-    }
-
-    const stopDrawing = () => {
-        setIsDrawing(false)
-    }
-
-    const clearCanvas = () => {
-        const canvas = canvasRef.current
-        if (!canvas) return
-        const ctx = canvas.getContext('2d')
-        if (!ctx) return
-        ctx.fillStyle = '#ffffff'
-        ctx.fillRect(0, 0, canvas.width, canvas.height)
     }
 
     if (loading) {
@@ -231,355 +135,180 @@ const SessionRoom: React.FC = () => {
                     <div>
                         <h1 className="font-semibold">{session?.title || 'Session'}</h1>
                         <p className="text-sm text-gray-400">
-                            with {session?.mentor?.name || 'Loading...'}
+                            with {user?.id === session?.mentorId ? session?.mentee?.name : session?.mentor?.name}
                         </p>
                     </div>
                 </div>
                 <div className="flex items-center gap-4">
-                    {isRecording && (
-                        <Badge variant="danger" className="animate-pulse">
-                            <Circle className="w-2 h-2 fill-current mr-1" />
-                            Recording
-                        </Badge>
-                    )}
                     <Badge variant="success">
-                        {session?.status === 'in_progress' ? 'Live' : session?.status}
+                        Live Collaboration
                     </Badge>
+                    <Button
+                        variant="danger"
+                        size="sm"
+                        onClick={endCall}
+                        className="ml-4"
+                    >
+                        End Session
+                    </Button>
                 </div>
             </header>
 
             {/* Main Content */}
             <div className="flex-1 flex overflow-hidden">
-                {/* Video Area */}
-                <div className="flex-1 relative bg-gray-900 p-4">
-                    {/* Remote Video (Mentor) */}
-                    <div className="absolute inset-4 rounded-xl bg-gray-800 flex items-center justify-center overflow-hidden">
-                        {/* Placeholder for video stream */}
-                        <div className="text-center">
-                            <Avatar
-                                src={session?.mentor?.avatar}
-                                alt={session?.mentor?.name}
-                                size="xl"
-                                className="mx-auto mb-4"
+                {/* Main Workspace Area (IDE or Classroom) */}
+                <div className="flex-1 relative bg-[#1e1e1e] flex flex-col">
+                    {activePanel === 'classroom' && classroomLink ? (
+                        <div className="flex-1 flex flex-col">
+                            <div className="p-2 bg-gray-800 flex justify-between items-center">
+                                <span className="text-sm text-gray-400 flex items-center gap-2">
+                                    <BookOpen size={16} /> Live Classroom: {classroomLink}
+                                </span>
+                                <Button size="sm" variant="ghost" icon={<ExternalLink size={14} />} onClick={() => window.open(classroomLink, '_blank')}>
+                                    Open Externally
+                                </Button>
+                            </div>
+                            <iframe
+                                src={classroomLink}
+                                className="flex-1 w-full border-none"
+                                title="Classroom"
+                                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                                allowFullScreen
                             />
-                            <p className="text-lg font-medium">{session?.mentor?.name}</p>
-                            <p className="text-gray-400">Connecting...</p>
                         </div>
-                    </div>
-
-                    {/* Local Video (Self) */}
-                    <div className="absolute bottom-8 right-8 w-48 h-36 rounded-lg bg-gray-700 overflow-hidden shadow-lg">
-                        {isVideoOn ? (
-                            <div className="w-full h-full flex items-center justify-center">
-                                <Avatar
-                                    src={session?.mentee?.avatar}
-                                    alt="You"
-                                    size="lg"
-                                />
-                            </div>
-                        ) : (
-                            <div className="w-full h-full flex items-center justify-center bg-gray-800">
-                                <VideoOff className="w-8 h-8 text-gray-500" />
-                            </div>
-                        )}
-                    </div>
-
-                    {/* Video Controls */}
-                    <div className="absolute bottom-8 left-1/2 -translate-x-1/2 flex items-center gap-2 p-2 rounded-full bg-gray-800/90 backdrop-blur-sm">
-                        <button
-                            onClick={toggleAudio}
-                            className={cn(
-                                'p-3 rounded-full transition-colors',
-                                isAudioOn ? 'bg-gray-700 hover:bg-gray-600' : 'bg-red-500 hover:bg-red-600'
-                            )}
-                        >
-                            {isAudioOn ? <Mic className="w-5 h-5" /> : <MicOff className="w-5 h-5" />}
-                        </button>
-                        <button
-                            onClick={toggleVideo}
-                            className={cn(
-                                'p-3 rounded-full transition-colors',
-                                isVideoOn ? 'bg-gray-700 hover:bg-gray-600' : 'bg-red-500 hover:bg-red-600'
-                            )}
-                        >
-                            {isVideoOn ? <Video className="w-5 h-5" /> : <VideoOff className="w-5 h-5" />}
-                        </button>
-                        <button
-                            onClick={toggleScreenShare}
-                            className={cn(
-                                'p-3 rounded-full transition-colors',
-                                isScreenSharing ? 'bg-primary hover:bg-primary/90' : 'bg-gray-700 hover:bg-gray-600'
-                            )}
-                        >
-                            <Monitor className="w-5 h-5" />
-                        </button>
-                        <button
-                            onClick={toggleRecording}
-                            className={cn(
-                                'p-3 rounded-full transition-colors',
-                                isRecording ? 'bg-red-500 hover:bg-red-600' : 'bg-gray-700 hover:bg-gray-600'
-                            )}
-                        >
-                            {isRecording ? <Pause className="w-5 h-5" /> : <Play className="w-5 h-5" />}
-                        </button>
-                        <div className="w-px h-8 bg-gray-600 mx-2" />
-                        <button
-                            onClick={endCall}
-                            className="p-3 rounded-full bg-red-500 hover:bg-red-600 transition-colors"
-                        >
-                            <Phone className="w-5 h-5 rotate-[135deg]" />
-                        </button>
-                    </div>
+                    ) : (
+                        <div className="flex-1 flex flex-col">
+                            <CodePlayground
+                                sessionId={parseInt(id!)}
+                                role={user?.role === 'mentor' ? 'mentor' : 'mentee'}
+                                userId={parseInt(user?.id || '0')}
+                            />
+                        </div>
+                    )}
                 </div>
 
                 {/* Side Panel Toggle */}
                 <div className="flex flex-col bg-gray-800 border-l border-gray-700">
                     {[
+                        { id: 'code', icon: Terminal, label: 'IDE' },
+                        { id: 'classroom', icon: BookOpen, label: 'Class' },
                         { id: 'chat', icon: MessageSquare, label: 'Chat' },
-                        { id: 'code', icon: Code, label: 'Code' },
-                        { id: 'whiteboard', icon: PenTool, label: 'Board' },
+                        { id: 'tasks', icon: ListIcon, label: 'Tasks' },
                         { id: 'notes', icon: FileText, label: 'Notes' },
                     ].map((panel) => (
                         <button
                             key={panel.id}
                             onClick={() => setActivePanel(activePanel === panel.id ? null : panel.id as SidePanel)}
                             className={cn(
-                                'p-3 flex flex-col items-center gap-1 transition-colors',
+                                'p-3 flex flex-col items-center gap-1 transition-colors min-w-[64px]',
                                 activePanel === panel.id
                                     ? 'bg-primary text-white'
                                     : 'text-gray-400 hover:bg-gray-700 hover:text-white'
                             )}
                         >
                             <panel.icon className="w-5 h-5" />
-                            <span className="text-xs">{panel.label}</span>
+                            <span className="text-[10px]">{panel.label}</span>
                         </button>
                     ))}
                 </div>
 
                 {/* Side Panel Content */}
                 <AnimatePresence>
-                    {activePanel && (
+                    {activePanel && activePanel !== 'code' && (
                         <motion.div
                             initial={{ width: 0, opacity: 0 }}
                             animate={{ width: 384, opacity: 1 }}
                             exit={{ width: 0, opacity: 0 }}
                             className="bg-gray-800 border-l border-gray-700 flex flex-col overflow-hidden"
                         >
-                            {/* Chat Panel */}
-                            {activePanel === 'chat' && (
-                                <div className="flex-1 flex flex-col">
-                                    <div className="p-4 border-b border-gray-700">
-                                        <h3 className="font-semibold">Session Chat</h3>
-                                    </div>
-                                    <div className="flex-1 overflow-y-auto p-4 space-y-4">
-                                        {messages.map((msg, i) => (
-                                            <div
-                                                key={i}
-                                                className={cn(
-                                                    'flex gap-2',
-                                                    msg.userId === 'current' ? 'flex-row-reverse' : ''
-                                                )}
-                                            >
-                                                <Avatar
-                                                    src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${msg.name}`}
-                                                    alt={msg.name}
-                                                    size="sm"
-                                                />
-                                                <div className={cn(
-                                                    'max-w-[70%] p-3 rounded-lg',
-                                                    msg.userId === 'current'
-                                                        ? 'bg-primary text-white'
-                                                        : 'bg-gray-700'
-                                                )}>
-                                                    <p className="text-sm">{msg.content}</p>
-                                                    <p className="text-xs opacity-60 mt-1">{msg.time}</p>
-                                                </div>
-                                            </div>
-                                        ))}
-                                    </div>
-                                    <div className="p-4 border-t border-gray-700">
-                                        <div className="flex gap-2">
+                            {activePanel === 'classroom' && (
+                                <div className="p-4 flex flex-col gap-4">
+                                    <h3 className="font-semibold">Classroom Integration</h3>
+                                    {user?.role === 'mentor' ? (
+                                        <div className="space-y-4">
+                                            <p className="text-sm text-gray-400">Paste a link to a video, document, or external tool to share it with your mentee instantly.</p>
                                             <Input
-                                                value={newMessage}
-                                                onChange={(e) => setNewMessage(e.target.value)}
-                                                placeholder="Type a message..."
-                                                onKeyPress={(e) => e.key === 'Enter' && sendMessage()}
-                                                className="bg-gray-700 border-gray-600"
+                                                value={classroomLink}
+                                                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setClassroomLink(e.target.value)}
+                                                placeholder="https://..."
                                             />
-                                            <Button variant="primary" icon={<Send />} onClick={sendMessage} />
+                                            <Button variant="primary" fullWidth onClick={updateClassroomLink}>
+                                                Push to Mentee
+                                            </Button>
                                         </div>
-                                    </div>
+                                    ) : (
+                                        <p className="text-sm text-gray-400">Your mentor will share classroom materials here when the session begins.</p>
+                                    )}
                                 </div>
                             )}
 
-                            {/* Code Editor Panel */}
-                            {activePanel === 'code' && (
-                                <div className="flex-1 flex flex-col">
-                                    <div className="p-4 border-b border-gray-700 flex items-center justify-between">
-                                        <h3 className="font-semibold">Shared Code Editor</h3>
-                                        <select
-                                            value={codeLanguage}
-                                            onChange={(e) => setCodeLanguage(e.target.value)}
-                                            className="bg-gray-700 text-sm rounded px-2 py-1 border border-gray-600"
-                                        >
-                                            <option value="javascript">JavaScript</option>
-                                            <option value="typescript">TypeScript</option>
-                                            <option value="python">Python</option>
-                                            <option value="java">Java</option>
-                                        </select>
-                                    </div>
-                                    <textarea
-                                        ref={codeEditorRef}
-                                        value={code}
-                                        onChange={(e) => setCode(e.target.value)}
-                                        className="flex-1 bg-gray-900 text-green-400 font-mono text-sm p-4 resize-none focus:outline-none"
-                                        spellCheck={false}
-                                    />
-                                    <div className="p-2 border-t border-gray-700 flex gap-2">
-                                        <Button variant="primary" size="sm" icon={<Play />}>
-                                            Run
-                                        </Button>
-                                        <Button variant="outline" size="sm" className="border-gray-600">
-                                            Share
-                                        </Button>
-                                    </div>
-                                </div>
-                            )}
-
-                            {/* Whiteboard Panel */}
-                            {activePanel === 'whiteboard' && (
-                                <div className="flex-1 flex flex-col">
-                                    <div className="p-4 border-b border-gray-700 flex items-center justify-between">
-                                        <h3 className="font-semibold">Whiteboard</h3>
-                                        <div className="flex gap-1">
-                                            {(['pen', 'line', 'rect', 'text', 'eraser'] as const).map((tool) => (
-                                                <button
-                                                    key={tool}
-                                                    onClick={() => setDrawTool(tool)}
-                                                    className={cn(
-                                                        'p-2 rounded transition-colors',
-                                                        drawTool === tool ? 'bg-primary' : 'bg-gray-700 hover:bg-gray-600'
-                                                    )}
-                                                >
-                                                    {tool === 'pen' && <PenTool className="w-4 h-4" />}
-                                                    {tool === 'line' && <div className="w-4 h-0.5 bg-current rotate-45" />}
-                                                    {tool === 'rect' && <Square className="w-4 h-4" />}
-                                                    {tool === 'text' && <Type className="w-4 h-4" />}
-                                                    {tool === 'eraser' && <Eraser className="w-4 h-4" />}
-                                                </button>
-                                            ))}
-                                        </div>
-                                    </div>
-                                    <div className="p-2 border-b border-gray-700 flex items-center gap-2">
-                                        {['#4F46E5', '#EF4444', '#10B981', '#F59E0B', '#000000'].map((color) => (
-                                            <button
-                                                key={color}
-                                                onClick={() => setDrawColor(color)}
-                                                className={cn(
-                                                    'w-6 h-6 rounded-full',
-                                                    drawColor === color && 'ring-2 ring-white'
-                                                )}
-                                                style={{ backgroundColor: color }}
+                            {activePanel === 'tasks' && (
+                                <div className="flex-1 flex flex-col p-4 overflow-y-auto">
+                                    <h3 className="font-semibold mb-4">Assignments</h3>
+                                    {user?.role === 'mentor' && (
+                                        <div className="flex gap-2 mb-4">
+                                            <Input
+                                                value={newTaskTitle}
+                                                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setNewTaskTitle(e.target.value)}
+                                                placeholder="Task title..."
+                                                className="flex-1"
                                             />
-                                        ))}
-                                        <button
-                                            onClick={clearCanvas}
-                                            className="ml-auto text-sm text-gray-400 hover:text-white"
-                                        >
-                                            Clear
-                                        </button>
-                                    </div>
-                                    <div className="flex-1 bg-white">
-                                        <canvas
-                                            ref={canvasRef}
-                                            width={384}
-                                            height={400}
-                                            onMouseDown={startDrawing}
-                                            onMouseMove={draw}
-                                            onMouseUp={stopDrawing}
-                                            onMouseLeave={stopDrawing}
-                                            className="cursor-crosshair"
-                                        />
-                                    </div>
-                                    <div className="p-2 border-t border-gray-700">
-                                        <Button variant="outline" size="sm" icon={<Download />} fullWidth className="border-gray-600">
-                                            Save Image
-                                        </Button>
-                                    </div>
-                                </div>
-                            )}
-
-                            {/* Notes Panel */}
-                            {activePanel === 'notes' && (
-                                <div className="flex-1 flex flex-col">
-                                    <div className="p-4 border-b border-gray-700">
-                                        <h3 className="font-semibold">Session Notes</h3>
-                                    </div>
-                                    <div className="flex-1 overflow-y-auto p-4 space-y-4">
-                                        {/* Notes */}
-                                        <div>
-                                            <h4 className="text-sm font-medium text-gray-400 mb-2">Notes</h4>
-                                            <div className="space-y-2">
-                                                {notes.map((note) => (
-                                                    <div key={note.id} className="p-3 rounded-lg bg-gray-700 text-sm">
-                                                        {note.content}
-                                                        <p className="text-xs text-gray-400 mt-1">
-                                                            {new Date(note.createdAt).toLocaleTimeString()}
-                                                        </p>
+                                            <Button
+                                                variant="primary"
+                                                size="sm"
+                                                icon={<Plus size={16} />}
+                                                onClick={async () => {
+                                                    if (!newTaskTitle.trim()) return;
+                                                    try {
+                                                        const newTask = await mentorshipService.addTask({
+                                                            assignment_id: session?.assignment_id,
+                                                            title: newTaskTitle,
+                                                            language: 'javascript'
+                                                        });
+                                                        setTasks([newTask, ...tasks]);
+                                                        setNewTaskTitle('');
+                                                        toast.success('Task assigned!');
+                                                    } catch (err) {
+                                                        toast.error('Failed to assign task');
+                                                    }
+                                                }}
+                                            />
+                                        </div>
+                                    )}
+                                    <div className="space-y-3">
+                                        <p className="text-[10px] text-gray-500 uppercase font-black tracking-wider">Active Tasks</p>
+                                        {tasks.length === 0 ? (
+                                            <p className="text-xs text-gray-500 italic">No tasks assigned yet.</p>
+                                        ) : (
+                                            tasks.map((task: any) => (
+                                                <div key={task.id} className="p-3 bg-gray-700/50 rounded-lg border-l-2 border-primary group hover:bg-gray-700 transition-colors">
+                                                    <div className="flex justify-between items-start">
+                                                        <p className="text-sm font-semibold">{task.title}</p>
+                                                        <Badge size="sm" variant={task.status === 'submitted' ? 'success' : 'warning'}>
+                                                            {task.status}
+                                                        </Badge>
                                                     </div>
-                                                ))}
-                                            </div>
-                                            <div className="mt-2 flex gap-2">
-                                                <Input
-                                                    value={newNote}
-                                                    onChange={(e) => setNewNote(e.target.value)}
-                                                    placeholder="Add a note..."
-                                                    className="bg-gray-700 border-gray-600"
-                                                />
-                                                <Button variant="primary" icon={<Plus />} onClick={addNote} />
-                                            </div>
-                                        </div>
-
-                                        {/* Action Items */}
-                                        <div>
-                                            <h4 className="text-sm font-medium text-gray-400 mb-2">Action Items</h4>
-                                            <div className="space-y-2">
-                                                {actionItems.map((item) => (
-                                                    <div
-                                                        key={item.id}
-                                                        className="flex items-center gap-3 p-3 rounded-lg bg-gray-700"
-                                                    >
-                                                        <button
-                                                            onClick={() => toggleActionItem(item.id)}
-                                                            className={cn(
-                                                                'w-5 h-5 rounded border flex items-center justify-center',
-                                                                item.completed
-                                                                    ? 'bg-green-500 border-green-500'
-                                                                    : 'border-gray-500'
-                                                            )}
+                                                    <p className="text-[10px] text-gray-400 mt-1 uppercase">{task.language}</p>
+                                                    {user?.role === 'mentee' && task.status !== 'submitted' && (
+                                                        <Button
+                                                            variant="primary"
+                                                            size="xs"
+                                                            className="mt-2 w-full text-[10px] h-7"
+                                                            onClick={() => setActivePanel('code')}
                                                         >
-                                                            {item.completed && <Check className="w-3 h-3" />}
-                                                        </button>
-                                                        <span className={cn(
-                                                            'flex-1 text-sm',
-                                                            item.completed && 'line-through text-gray-400'
-                                                        )}>
-                                                            {item.title}
-                                                        </span>
-                                                    </div>
-                                                ))}
-                                            </div>
-                                            <div className="mt-2 flex gap-2">
-                                                <Input
-                                                    value={newActionItem}
-                                                    onChange={(e) => setNewActionItem(e.target.value)}
-                                                    placeholder="Add action item..."
-                                                    className="bg-gray-700 border-gray-600"
-                                                />
-                                                <Button variant="primary" icon={<Plus />} onClick={addActionItem} />
-                                            </div>
-                                        </div>
+                                                            Start Working
+                                                        </Button>
+                                                    )}
+                                                </div>
+                                            ))
+                                        )}
                                     </div>
+                                </div>
+                            )}
+
+                            {activePanel === 'chat' && (
+                                <div className="flex-1 flex flex-col h-full items-center justify-center text-gray-500 text-sm italic">
+                                    Chat integration coming soon...
                                 </div>
                             )}
                         </motion.div>
@@ -589,5 +318,9 @@ const SessionRoom: React.FC = () => {
         </div>
     )
 }
+
+const ListIcon = ({ className }: { className?: string }) => (
+    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><line x1="8" y1="6" x2="21" y2="6"></line><line x1="8" y1="12" x2="21" y2="12"></line><line x1="8" y1="18" x2="21" y2="18"></line><line x1="3" y1="6" x2="3.01" y2="6"></line><line x1="3" y1="12" x2="3.01" y2="12"></line><line x1="3" y1="18" x2="3.01" y2="18"></line></svg>
+)
 
 export default SessionRoom
