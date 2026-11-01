@@ -93,7 +93,7 @@ async def upload_avatar(
     
     # Generate filename from validated media type, not user-controlled extension.
     ext = validated_image_extension(file.content_type, content)
-    filename = f"{current_user['user_id']}/{uuid.uuid4()}.{ext}"
+    filename = f"{current_user['user_id']}/avatar/{uuid.uuid4()}.{ext}"
     
     try:
         # Upload to Supabase Storage
