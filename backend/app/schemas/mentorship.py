@@ -1,6 +1,6 @@
 """Mentorship schemas."""
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 from typing import Optional, List
 from datetime import datetime
 from enum import Enum
@@ -31,10 +31,17 @@ class SessionCreate(BaseModel):
     title: str = Field(..., max_length=200)
     description: Optional[str] = None
     topic: Optional[str] = None
-    week_focus: Optional[WeekFocus] = None
+    week_focus: WeekFocus
     session_date: datetime
-    duration_minutes: Optional[int] = 60
+    duration_minutes: int = Field(default=60, ge=15, le=240)
     learning_objectives: Optional[List[str]] = None
+
+    @field_validator("session_date")
+    @classmethod
+    def require_offset(cls, value: datetime) -> datetime:
+        if value.tzinfo is None or value.utcoffset() is None:
+            raise ValueError("Session date must include a timezone offset")
+        return value
 
 
 class SessionUpdate(BaseModel):
@@ -42,8 +49,15 @@ class SessionUpdate(BaseModel):
     description: Optional[str] = None
     topic: Optional[str] = None
     session_date: Optional[datetime] = None
-    duration_minutes: Optional[int] = None
+    duration_minutes: Optional[int] = Field(default=None, ge=15, le=240)
     learning_objectives: Optional[List[str]] = None
+
+    @field_validator("session_date")
+    @classmethod
+    def require_offset(cls, value: Optional[datetime]) -> Optional[datetime]:
+        if value is not None and (value.tzinfo is None or value.utcoffset() is None):
+            raise ValueError("Session date must include a timezone offset")
+        return value
 
 
 class SessionComplete(BaseModel):
