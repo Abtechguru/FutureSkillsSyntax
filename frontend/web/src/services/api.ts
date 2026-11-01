@@ -1,7 +1,7 @@
 import axios from 'axios'
 import type { AxiosInstance, AxiosRequestConfig, AxiosResponse, InternalAxiosRequestConfig } from 'axios'
 import { toast } from 'react-hot-toast'
-import type { User, LoginCredentials, RegisterData, CareerField, MentorshipSession } from '@/types'
+import type { User, LoginCredentials, CareerField, MentorshipSession } from '@/types'
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000'
 
@@ -31,7 +31,7 @@ class ApiService {
       (config: InternalAxiosRequestConfig) => {
         const token = this.store?.getState()?.auth?.accessToken
 
-        if (token && config.headers) {
+        if (token && config.headers && !config.headers.Authorization) {
           config.headers.Authorization = `Bearer ${token}`
         }
 
@@ -154,7 +154,7 @@ class ApiService {
     me: (token: string) =>
       this.api.get('/api/v1/auth/me', { headers: { Authorization: `Bearer ${token}` } }),
 
-    register: (data: RegisterData) =>
+    register: (data: { email: string; username: string; password: string; full_name: string; role: 'career_seeker' | 'parent_guardian' }) =>
       this.api.post('/api/v1/auth/register', data),
 
     logout: () =>
