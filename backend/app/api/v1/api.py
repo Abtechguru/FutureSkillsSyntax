@@ -15,11 +15,12 @@ api_router.include_router(
 )
 
 # Payment routes
-api_router.include_router(
-    payment.router,
-    prefix="/payment",
-    tags=["Payment"]
-)
+if settings.PAYMENTS_ENABLED:
+    api_router.include_router(
+        payment.router,
+        prefix="/payment",
+        tags=["Payment"]
+    )
 
 # Authentication routes
 api_router.include_router(
