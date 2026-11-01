@@ -36,6 +36,8 @@ async def upload_file(
     - **image**: General images (max 5MB)
     """
     user_id = current_user["user_id"]
+    if file_type == "avatar" and not settings.AVATAR_UPLOADS_ENABLED:
+        raise HTTPException(status_code=503, detail="Avatar uploads are not yet enabled")
     if file_type != "avatar" and not settings.NON_AVATAR_UPLOADS_ENABLED:
         raise HTTPException(status_code=503, detail="Document and project uploads are not yet enabled")
     if current_user["role"] == "mentee" and file_type in ("avatar", "image"):
