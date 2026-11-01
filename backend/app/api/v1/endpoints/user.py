@@ -7,6 +7,7 @@ from typing import Dict, Any
 import uuid
 
 from app.core.database import get_db
+from app.core.uploads import validated_image_extension
 from app.core.security import get_current_user, get_password_hash, verify_password
 from app.core.supabase_client import avatars_storage
 from app.models.user import User
@@ -71,6 +72,9 @@ async def upload_avatar(
     db: AsyncSession = Depends(get_db)
 ):
     """Upload user avatar."""
+    if current_user["role"] == "mentee":
+        raise HTTPException(status_code=403, detail="Minor profile image uploads require a reviewed safeguarding workflow")
+
     # Validate file type
     allowed_types = ["image/jpeg", "image/png", "image/gif", "image/webp"]
     if file.content_type not in allowed_types:
@@ -80,15 +84,15 @@ async def upload_avatar(
         )
     
     # Validate file size (max 5MB)
-    content = await file.read()
+    content = await file.read(5 * 1024 * 1024 + 1)
     if len(content) > 5 * 1024 * 1024:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="File too large. Maximum size is 5MB"
         )
     
-    # Generate unique filename
-    ext = file.filename.split(".")[-1] if file.filename else "jpg"
+    # Generate filename from validated media type, not user-controlled extension.
+    ext = validated_image_extension(file.content_type, content)
     filename = f"{current_user['user_id']}/{uuid.uuid4()}.{ext}"
     
     try:
@@ -112,7 +116,7 @@ async def upload_avatar(
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to upload avatar: {str(e)}"
+            detail="Unable to upload avatar"
         )
 
 
