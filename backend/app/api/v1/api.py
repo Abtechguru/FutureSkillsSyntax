@@ -3,7 +3,7 @@
 from fastapi import APIRouter
 from app.core.config import settings
 
-from app.api.v1.endpoints import auth, career, user, mentorship, gamification, learning, community, upload, goals, collaboration, admin, payment
+from app.api.v1.endpoints import auth, career, user, mentorship, gamification, learning, community, upload, collaboration, admin, payment
 
 api_router = APIRouter()
 
@@ -88,8 +88,10 @@ api_router.include_router(
 )
 
 # Goals tracking routes (MongoDB)
-api_router.include_router(
-    goals.router,
-    prefix="/goals",
-    tags=["Goals"]
-)
+if settings.GOALS_ENABLED:
+    from app.api.v1.endpoints import goals
+    api_router.include_router(
+        goals.router,
+        prefix="/goals",
+        tags=["Goals"]
+    )
