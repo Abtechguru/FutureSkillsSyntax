@@ -52,7 +52,7 @@ class ApiService {
         const originalRequest = error.config
 
         // Handle 401 Unauthorized (token expired)
-        if (error.response?.status === 401 && !originalRequest._retry) {
+        if (error.response?.status === 401 && originalRequest && !originalRequest._retry && !originalRequest.url?.includes('/auth/')) {
           originalRequest._retry = true
 
           try {
@@ -125,7 +125,8 @@ class ApiService {
 
         const response = await axios.post(
           `${API_BASE_URL}/api/v1/auth/refresh`,
-          { refresh_token: refreshTokenValue }
+          null,
+          { params: { refresh_token: refreshTokenValue } }
         )
 
         const { access_token } = response.data
@@ -177,7 +178,7 @@ class ApiService {
 
     updateAvatar: (file: File) => {
       const formData = new FormData()
-      formData.append('avatar', file)
+      formData.append('file', file)
       return this.api.post('/api/v1/user/avatar', formData, {
         headers: {
           'Content-Type': 'multipart/form-data',
