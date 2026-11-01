@@ -82,9 +82,16 @@ async def register(
     await db.commit()
     await db.refresh(user)
     
-    # Send verification email in background
+    # Persist the token before response. Never use a request-scoped DB session in
+    # a post-response background task (it may already have been closed).
     auth_service = AuthService(db)
-    background_tasks.add_task(auth_service.send_verification_email, user)
+    token = await auth_service.create_verification_token(user)
+    background_tasks.add_task(
+        auth_service.email_service.send_verification_email,
+        to_email=user.email,
+        to_name=user.full_name or user.username,
+        verification_token=token,
+    )
     
     return user
 
@@ -268,7 +275,13 @@ async def resend_verification_email(
         )
     
     auth_service = AuthService(db)
-    background_tasks.add_task(auth_service.send_verification_email, user)
+    token = await auth_service.create_verification_token(user)
+    background_tasks.add_task(
+        auth_service.email_service.send_verification_email,
+        to_email=user.email,
+        to_name=user.full_name or user.username,
+        verification_token=token,
+    )
     
     return {"message": "If email exists, verification link will be sent"}
 
