@@ -4,6 +4,7 @@ from jose import JWTError, jwt
 from passlib.context import CryptContext
 from fastapi import HTTPException, status, Depends
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
+from app.core.database import get_db
 
 from app.core.config import settings
 
@@ -84,7 +85,7 @@ async def get_current_user_from_token(token: str, db: AsyncSession) -> User:
     result = await db.execute(select(User).where(User.id == int(user_id)))
     user = result.scalar_one_or_none()
     
-    if user is None:
+    if user is None or not user.is_active:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="User not found",
@@ -93,7 +94,10 @@ async def get_current_user_from_token(token: str, db: AsyncSession) -> User:
     return user
 
 
-async def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(security)):
+async def get_current_user(
+    credentials: HTTPAuthorizationCredentials = Depends(security),
+    db: AsyncSession = Depends(get_db),
+):
     """Dependency to get current user from token."""
     token = credentials.credentials
     payload = decode_token(token)
@@ -111,4 +115,12 @@ async def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(s
             detail="Could not validate credentials",
         )
     
-    return {"user_id": int(user_id), "role": payload.get("role", "user")}
+    try:
+        parsed_user_id = int(user_id)
+    except (TypeError, ValueError):
+        raise HTTPException(status_code=401, detail="Invalid user identifier")
+    result = await db.execute(select(User).where(User.id == parsed_user_id))
+    user = result.scalar_one_or_none()
+    if user is None or not user.is_active:
+        raise HTTPException(status_code=401, detail="User not found or inactive")
+    return {"user_id": user.id, "role": user.role.value}
