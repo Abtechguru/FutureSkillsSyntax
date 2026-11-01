@@ -100,7 +100,7 @@ export const registerUser = createAsyncThunk(
                 password: data.password,
                 full_name: data.fullName,
                 role: data.role,
-            } as any)
+            })
             return response.data
         } catch (error: any) {
             return rejectWithValue(error.response?.data?.message || 'Registration failed')
