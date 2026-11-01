@@ -175,7 +175,10 @@ async def get_assignment(
         .where(
             and_(
                 MentorAssignment.id == assignment_id,
-                MentorAssignment.mentor_id == user_id if current_user["role"] != "admin" else True
+                or_(
+                    MentorAssignment.mentor_id == user_id,
+                    MentorAssignment.mentee_id == user_id
+                )
             )
         )
     )
@@ -280,10 +283,7 @@ async def create_session(
             and_(
                 MentorAssignment.id == session_data.assignment_id,
                 MentorAssignment.is_active == True,
-                or_(
-                    MentorAssignment.mentor_id == user_id,
-                    MentorAssignment.mentee_id == user_id
-                )
+                MentorAssignment.mentor_id == user_id if current_user["role"] != "admin" else True
             )
         )
     )
@@ -309,7 +309,6 @@ async def create_session(
         mentee_id=assignment.mentee_id,
         title=session_data.title,
         description=session_data.description,
-        topic=session_data.topic,
         week_focus=session_data.week_focus,
         session_date=session_data.session_date,
         duration_minutes=session_data.duration_minutes or 60,
