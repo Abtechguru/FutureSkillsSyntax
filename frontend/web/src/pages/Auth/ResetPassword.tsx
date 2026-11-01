@@ -1,5 +1,5 @@
 import React, { useState } from 'react'
-import { useSearchParams, Link } from 'react-router-dom'
+import { useSearchParams, useParams, Link } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import { Lock, Eye, EyeOff, CheckCircle, ArrowLeft } from 'lucide-react'
 
@@ -14,7 +14,8 @@ const ResetPassword: React.FC = () => {
     const [showPassword, setShowPassword] = useState(false)
     const [isSuccess, setIsSuccess] = useState(false)
     const [searchParams] = useSearchParams()
-    const token = searchParams.get('token') || ''
+    const { token: pathToken } = useParams<{ token: string }>()
+    const token = searchParams.get('token') || pathToken || ''
 
     const { resetUserPassword, isLoading, error, clearAuthError } = useAuth()
 
