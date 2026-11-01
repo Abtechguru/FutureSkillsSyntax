@@ -302,7 +302,9 @@ async def get_leaderboard(
     current_user: Dict[str, Any] = Depends(get_current_user),
     db: AsyncSession = Depends(get_db)
 ):
-    """Get leaderboard rankings."""
+    """Get leaderboard rankings, if appropriate for a safeguarded cohort."""
+    if not settings.PUBLIC_LEADERBOARDS_ENABLED:
+        raise HTTPException(status_code=503, detail="Public leaderboards are unavailable for child privacy")
     user_id = current_user["user_id"]
     
     if scope == "global":
