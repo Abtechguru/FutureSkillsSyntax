@@ -54,6 +54,10 @@ class Settings(BaseSettings):
                 raise ValueError("DEBUG must be disabled in production")
             if self.DEV_LOG_EMAILS:
                 raise ValueError("DEV_LOG_EMAILS must be disabled in production")
+            if not self.EMAILS_ENABLED or not all(
+                (self.SMTP_HOST, self.SMTP_USER, self.SMTP_PASSWORD, self.EMAIL_FROM)
+            ):
+                raise ValueError("Production signup requires a configured transactional email service")
             if not self.FRONTEND_URL.startswith("https://"):
                 raise ValueError("FRONTEND_URL must use HTTPS in production")
             if not self.CORS_ORIGINS or "*" in self.CORS_ORIGINS:
