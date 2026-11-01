@@ -206,12 +206,14 @@ async def get_sessions(
     """Get mentorship sessions."""
     user_id = current_user["user_id"]
     
-    query = select(MentorshipSession).where(
-        or_(
-            MentorshipSession.mentor_id == user_id,
-            MentorshipSession.mentee_id == user_id
+    query = select(MentorshipSession)
+    if current_user["role"] != "admin":
+        query = query.where(
+            or_(
+                MentorshipSession.mentor_id == user_id,
+                MentorshipSession.mentee_id == user_id
+            )
         )
-    )
     
     if assignment_id:
         query = query.where(MentorshipSession.assignment_id == assignment_id)
@@ -249,7 +251,7 @@ async def get_session(
                 or_(
                     MentorshipSession.mentor_id == user_id,
                     MentorshipSession.mentee_id == user_id
-                )
+                ) if current_user["role"] != "admin" else True
             )
         )
     )
@@ -341,7 +343,7 @@ async def update_session(
                 or_(
                     MentorshipSession.mentor_id == user_id,
                     MentorshipSession.mentee_id == user_id
-                )
+                ) if current_user["role"] != "admin" else True
             )
         )
     )
@@ -390,7 +392,7 @@ async def cancel_session(
                 or_(
                     MentorshipSession.mentor_id == user_id,
                     MentorshipSession.mentee_id == user_id
-                )
+                ) if current_user["role"] != "admin" else True
             )
         )
     )
@@ -440,7 +442,7 @@ async def complete_session(
                 or_(
                     MentorshipSession.mentor_id == user_id,
                     MentorshipSession.mentee_id == user_id
-                )
+                ) if current_user["role"] != "admin" else True
             )
         )
     )
@@ -452,10 +454,10 @@ async def complete_session(
             detail="Session not found"
         )
     
-    if session.status == SessionStatus.COMPLETED:
+    if session.status not in (SessionStatus.SCHEDULED, SessionStatus.IN_PROGRESS):
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Session already completed"
+            detail="Only scheduled or in-progress sessions can be completed"
         )
     
     if current_user["role"] != "admin" and session.mentor_id != user_id:
