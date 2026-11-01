@@ -46,6 +46,7 @@ function App() {
               <Route path="login" element={<Login />} />
               <Route path="register" element={<Register />} />
               <Route path="forgot-password" element={<ForgotPassword />} />
+              <Route path="reset-password" element={<ResetPassword />} />
               <Route path="reset-password/:token" element={<ResetPassword />} />
               <Route path="verify-email" element={<VerifyEmail />} />
               <Route path="admin/login" element={<AdminLogin />} />
@@ -60,6 +61,7 @@ function App() {
                 </Route>
               </Route>
 
+              <Route path="unauthorized" element={<NotFound />} />
               <Route path="*" element={<NotFound />} />
             </Route>
           </Routes>
