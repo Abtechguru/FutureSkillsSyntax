@@ -54,6 +54,7 @@ class User(Base):
     is_active = Column(Boolean, default=True)
     is_verified = Column(Boolean, default=False)
     verification_token = Column(String(255), nullable=True)
+    verification_token_expires = Column(DateTime(timezone=True), nullable=True)
     password_reset_token = Column(String(255), nullable=True)
     password_reset_expires = Column(DateTime(timezone=True), nullable=True)
     
