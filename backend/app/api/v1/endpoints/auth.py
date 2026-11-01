@@ -17,7 +17,8 @@ from app.core.security import (
 from app.models.user import User
 from app.schemas.user import (
     UserCreate, 
-    UserResponse, 
+    UserResponse,
+    TokenRefresh, 
     Token, 
     LoginRequest,
     PasswordResetRequest,
@@ -56,6 +57,14 @@ async def register(
                 detail="Username already taken",
             )
     
+    # Adult accounts only. Mentors require independent screening and approval,
+    # and children's accounts require a guardian-led onboarding workflow.
+    if user_data.role.value not in ("career_seeker", "parent_guardian"):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="This role requires supervised onboarding",
+        )
+
     # Create new user
     hashed_password = get_password_hash(user_data.password)
     user = User(
@@ -64,7 +73,7 @@ async def register(
         hashed_password=hashed_password,
         full_name=user_data.full_name,
         # Public registration cannot assign privileged or minor learner roles.
-        role="parent_guardian" if user_data.role.value == "parent_guardian" else "career_seeker",
+        role=user_data.role,
         gender=user_data.gender,
         experience_points=settings.INITIAL_XP,
     )
@@ -127,12 +136,12 @@ async def login(
 
 @router.post("/refresh", response_model=Token)
 async def refresh_token(
-    refresh_token: str,
+    refresh_data: TokenRefresh,
     db: AsyncSession = Depends(get_db)
 ):
-    """Refresh access token using refresh token."""
+    """Refresh access token using a JSON body, not URL query parameters."""
     try:
-        payload = decode_token(refresh_token)
+        payload = decode_token(refresh_data.refresh_token)
         
         if payload.get("type") != "refresh":
             raise HTTPException(
@@ -256,3 +265,28 @@ async def resend_verification_email(
     background_tasks.add_task(auth_service.send_verification_email, user)
     
     return {"message": "If email exists, verification link will be sent"}
+
+@router.post("/forgot-password")
+async def forgot_password(
+    request: PasswordResetRequest,
+    db: AsyncSession = Depends(get_db),
+):
+    """Request a single-use reset token; avoid account enumeration."""
+    auth_service = AuthService(db)
+    await auth_service.create_password_reset_token(request.email)
+    return {"message": "If this account exists, a reset link will be sent"}
+
+
+@router.post("/reset-password")
+async def reset_password(
+    request: PasswordResetConfirm,
+    db: AsyncSession = Depends(get_db),
+):
+    """Consume a single-use, expiring reset token."""
+    auth_service = AuthService(db)
+    if not await auth_service.reset_password(request.token, request.password):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid or expired reset link",
+        )
+    return {"message": "Password updated"}
