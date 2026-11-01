@@ -1,7 +1,7 @@
 """User schemas."""
 
 from pydantic import BaseModel, EmailStr, Field
-from typing import Optional, List
+from typing import Optional, List, Literal
 from datetime import datetime
 from enum import Enum
 
@@ -24,6 +24,7 @@ class Gender(str, Enum):
 # ============== Auth Schemas ==============
 
 class UserCreate(BaseModel):
+    is_adult: Literal[True]  # Self-attestation only, not identity verification
     email: EmailStr
     username: str = Field(..., min_length=3, max_length=50)
     password: str = Field(..., min_length=8)
