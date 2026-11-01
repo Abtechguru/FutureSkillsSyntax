@@ -37,6 +37,11 @@ class Settings(BaseSettings):
     REDIS_URL: str = "redis://localhost:6379/0"
     REDIS_CACHE_TTL: int = 300
     
+    # Child-safety rollout switches: interactive communication and code runners
+    # must remain disabled until vetted supervision and a sandbox are deployed.
+    CHILD_INTERACTIVE_FEATURES_ENABLED: bool = False
+    CODE_EXECUTION_ENABLED: bool = False
+
     # CORS
     CORS_ORIGINS: List[str] = ["http://localhost:3000", "http://localhost:5173"]
     
@@ -47,6 +52,10 @@ class Settings(BaseSettings):
                 raise ValueError("Production SECRET_KEY must be a strong unique value of at least 32 characters")
             if self.DEBUG:
                 raise ValueError("DEBUG must be disabled in production")
+            if self.DEV_LOG_EMAILS:
+                raise ValueError("DEV_LOG_EMAILS must be disabled in production")
+            if not self.FRONTEND_URL.startswith("https://"):
+                raise ValueError("FRONTEND_URL must use HTTPS in production")
             if not self.CORS_ORIGINS or "*" in self.CORS_ORIGINS:
                 raise ValueError("Production CORS_ORIGINS must explicitly name trusted origins")
         return self
