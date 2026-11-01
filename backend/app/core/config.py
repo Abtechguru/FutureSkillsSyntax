@@ -42,6 +42,9 @@ class Settings(BaseSettings):
     CHILD_INTERACTIVE_FEATURES_ENABLED: bool = False
     CODE_EXECUTION_ENABLED: bool = False
     NON_AVATAR_UPLOADS_ENABLED: bool = False
+    MENTOR_ONBOARDING_ENABLED: bool = False
+    MENTOR_MATCHING_ENABLED: bool = False
+    MENTORSHIP_SCHEDULING_ENABLED: bool = False
 
     # CORS
     CORS_ORIGINS: List[str] = ["http://localhost:3000", "http://localhost:5173"]
