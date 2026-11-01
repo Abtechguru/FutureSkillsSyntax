@@ -84,7 +84,6 @@ export const useAuth = () => {
             try {
                 await dispatch(resetPassword({ token, password })).unwrap()
                 toast.success('Password reset successfully')
-                navigate('/login')
                 return true
             } catch (error: any) {
                 toast.error(error || 'Failed to reset password')
