@@ -1,21 +1,15 @@
 import React, { useState } from 'react'
 import { Outlet, useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
-import { useSelector, useDispatch } from 'react-redux'
+import { useDispatch } from 'react-redux'
 
 import Header from './Header'
 import Sidebar from './Sidebar'
 import Footer from './Footer'
-import type { RootState } from '@/store/store'
 import { logout } from '@/store/slices/authSlice'
-import XpBar from '@/components/gamification/XpBar'
 
 const Layout: React.FC = () => {
   const [sidebarOpen, setSidebarOpen] = useState(false)
-  const { user, isAuthenticated } = useSelector((state: RootState) => state.auth)
-  const { currentXp, currentLevel, xpToNextLevel } = useSelector(
-    (state: RootState) => state.gamification
-  )
   const dispatch = useDispatch()
   const navigate = useNavigate()
 
@@ -79,21 +73,6 @@ const Layout: React.FC = () => {
 
         {/* Main Content Area */}
         <main className="flex-1 overflow-y-auto">
-          {/* XP Bar (only when authenticated) */}
-          {isAuthenticated && (
-            <div className="sticky top-16 z-30 bg-white/80 dark:bg-gray-900/80 backdrop-blur-sm border-b border-gray-200 dark:border-gray-700">
-              <div className="container-custom py-2">
-                <XpBar
-                  currentXp={currentXp}
-                  currentLevel={currentLevel}
-                  xpToNextLevel={xpToNextLevel}
-                  animated={true}
-                  showDetails={true}
-                />
-              </div>
-            </div>
-          )}
-
           {/* Page Content */}
           <div className="container-custom py-6">
             <AnimatePresence mode="wait">
