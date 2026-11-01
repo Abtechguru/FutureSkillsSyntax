@@ -7,6 +7,7 @@ from typing import Dict, Any
 import uuid
 
 from app.core.database import get_db
+from app.core.config import settings
 from app.core.uploads import validated_image_extension
 from app.core.security import get_current_user, get_password_hash, verify_password
 from app.core.supabase_client import avatars_storage
@@ -71,7 +72,9 @@ async def upload_avatar(
     current_user: Dict[str, Any] = Depends(get_current_user),
     db: AsyncSession = Depends(get_db)
 ):
-    """Upload user avatar."""
+    """Upload user avatar after storage privacy validation."""
+    if not settings.AVATAR_UPLOADS_ENABLED:
+        raise HTTPException(status_code=503, detail="Avatar uploads are not yet enabled")
     if current_user["role"] == "mentee":
         raise HTTPException(status_code=403, detail="Minor profile image uploads require a reviewed safeguarding workflow")
 
