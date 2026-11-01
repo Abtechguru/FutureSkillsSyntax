@@ -29,7 +29,7 @@ class Settings(BaseSettings):
     SUPABASE_SERVICE_ROLE_KEY: str = ""
     
     # MongoDB Configuration (for Goals system)
-    MONGODB_URI: str = "mongodb+srv://careernig24:<db_password>@cluster0.c4h1ona.mongodb.net/?appName=Cluster0"
+    MONGODB_URI: str = ""
     MONGODB_DB_NAME: str = "futureskills"
     MONGODB_PASSWORD: Optional[str] = None  # Set in .env
     
@@ -56,7 +56,13 @@ class Settings(BaseSettings):
     
     @model_validator(mode="after")
     def validate_production_security(self):
+        if self.GOALS_ENABLED and not self.MONGODB_URI:
+            raise ValueError("GOALS_ENABLED requires an explicit MONGODB_URI")
+        if self.AVATAR_UPLOADS_ENABLED and not (self.SUPABASE_URL and self.SUPABASE_SERVICE_ROLE_KEY):
+            raise ValueError("AVATAR_UPLOADS_ENABLED requires server-only Supabase credentials")
         if self.ENVIRONMENT.lower() == "production":
+            if self.DATABASE_URL == "postgresql+asyncpg://postgres:postgres@localhost:54322/postgres":
+                raise ValueError("Production DATABASE_URL must not use local development defaults")
             if self.SECRET_KEY == "your-secret-key-change-in-production" or len(self.SECRET_KEY) < 32:
                 raise ValueError("Production SECRET_KEY must be a strong unique value of at least 32 characters")
             if self.DEBUG:
