@@ -85,7 +85,9 @@ async def get_current_user_from_token(token: str, db: AsyncSession) -> User:
     result = await db.execute(select(User).where(User.id == int(user_id)))
     user = result.scalar_one_or_none()
     
-    if user is None or not user.is_active:
+    if user is None or not user.is_active or (
+        settings.ENVIRONMENT.lower() == "production" and not user.is_verified
+    ):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="User not found",
@@ -121,6 +123,8 @@ async def get_current_user(
         raise HTTPException(status_code=401, detail="Invalid user identifier")
     result = await db.execute(select(User).where(User.id == parsed_user_id))
     user = result.scalar_one_or_none()
-    if user is None or not user.is_active:
-        raise HTTPException(status_code=401, detail="User not found or inactive")
+    if user is None or not user.is_active or (
+        settings.ENVIRONMENT.lower() == "production" and not user.is_verified
+    ):
+        raise HTTPException(status_code=401, detail="User not found, inactive, or unverified")
     return {"user_id": user.id, "role": user.role.value}
