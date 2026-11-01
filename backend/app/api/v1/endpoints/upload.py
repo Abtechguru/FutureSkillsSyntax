@@ -128,7 +128,7 @@ async def upload_file(
 @router.delete("/{file_path:path}")
 async def delete_file(
     file_path: str,
-    file_type: str = Form(..., regex="^(avatar|document|project)$"),
+    file_type: str = Form(..., regex="^(avatar|document|project|image)$"),
     current_user: Dict[str, Any] = Depends(get_current_user),
     db: AsyncSession = Depends(get_db)
 ):
@@ -149,7 +149,7 @@ async def delete_file(
     # Select storage bucket
     if file_type == "avatar":
         storage = avatars_storage
-    elif file_type == "document":
+    elif file_type in ("document", "image"):
         storage = documents_storage
     else:
         storage = projects_storage
@@ -185,7 +185,7 @@ async def get_signed_url(
     # Select storage bucket
     if file_type == "avatar":
         storage = avatars_storage
-    elif file_type == "document":
+    elif file_type in ("document", "image"):
         storage = documents_storage
     else:
         storage = projects_storage
