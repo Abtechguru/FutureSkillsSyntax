@@ -38,6 +38,7 @@ export interface LoginCredentials {
 }
 
 export interface RegisterData {
+    isAdult: boolean
     email: string
     username: string
     password: string
@@ -96,6 +97,7 @@ export const registerUser = createAsyncThunk(
         try {
             const response = await api.auth.register({
                 email: data.email,
+                is_adult: data.isAdult,
                 username: data.username,
                 password: data.password,
                 full_name: data.fullName,
