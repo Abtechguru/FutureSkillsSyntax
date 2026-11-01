@@ -115,6 +115,9 @@ async def login(
             detail="Inactive user",
         )
     
+    if settings.ENVIRONMENT.lower() == "production" and not user.is_verified:
+        raise HTTPException(status_code=403, detail="Verify your email before signing in")
+
     # Update last login
     user.last_login = datetime.utcnow()
     await db.commit()
@@ -168,6 +171,9 @@ async def refresh_token(
                 detail="User not found or inactive",
             )
         
+        if settings.ENVIRONMENT.lower() == "production" and not user.is_verified:
+            raise HTTPException(status_code=403, detail="Verify your email before signing in")
+
         # Create new tokens
         access_token = create_access_token(
             data={"sub": str(user.id), "role": user.role.value}
