@@ -52,7 +52,8 @@ async def init_db():
     if settings.ENVIRONMENT.lower() == "production":
         required_columns = {
             "users": {"id", "email", "username", "role", "is_active",
-                      "password_reset_token", "password_reset_expires"},
+                      "password_reset_token", "password_reset_expires",
+                      "verification_token_expires"},
             "mentor_assignments": {"id", "mentor_id", "mentee_id", "is_active"},
             "mentorship_sessions": {"id", "assignment_id", "mentor_id", "mentee_id"},
         }
