@@ -1,6 +1,7 @@
 """Email service for sending transactional emails."""
 
 import smtplib
+import asyncio
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 from typing import Optional
@@ -72,10 +73,14 @@ class EmailService:
             
             msg.attach(MIMEText(html_content, "html"))
             
-            with smtplib.SMTP(self.smtp_host, self.smtp_port) as server:
-                server.starttls()
-                server.login(self.smtp_user, self.smtp_password)
-                server.sendmail(self.from_email, to_email, msg.as_string())
+            def deliver() -> None:
+                # SMTP is synchronous. Run outside the API event loop with timeouts.
+                with smtplib.SMTP(self.smtp_host, self.smtp_port, timeout=15) as server:
+                    server.starttls()
+                    server.login(self.smtp_user, self.smtp_password)
+                    server.sendmail(self.from_email, to_email, msg.as_string())
+
+            await asyncio.to_thread(deliver)
             
             logger.info(f"Email sent to {to_email}")
             return True
