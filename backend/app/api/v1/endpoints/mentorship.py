@@ -273,6 +273,9 @@ async def create_session(
     db: AsyncSession = Depends(get_db)
 ):
     """Create a new mentorship session."""
+    if not settings.MENTORSHIP_SCHEDULING_ENABLED:
+        raise HTTPException(status_code=503, detail="Mentorship session changes are disabled pending safeguarding approval")
+
     user_id = current_user["user_id"]
     
     # Only an authorised mentor or administrator may schedule a session.
@@ -334,6 +337,9 @@ async def update_session(
     db: AsyncSession = Depends(get_db)
 ):
     """Update a session."""
+    if not settings.MENTORSHIP_SCHEDULING_ENABLED:
+        raise HTTPException(status_code=503, detail="Mentorship session changes are disabled pending safeguarding approval")
+
     user_id = current_user["user_id"]
     
     result = await db.execute(
@@ -383,6 +389,9 @@ async def cancel_session(
     db: AsyncSession = Depends(get_db)
 ):
     """Cancel a scheduled session."""
+    if not settings.MENTORSHIP_SCHEDULING_ENABLED:
+        raise HTTPException(status_code=503, detail="Mentorship session changes are disabled pending safeguarding approval")
+
     user_id = current_user["user_id"]
     
     result = await db.execute(
@@ -433,6 +442,9 @@ async def complete_session(
     db: AsyncSession = Depends(get_db)
 ):
     """Mark session as completed with feedback."""
+    if not settings.MENTORSHIP_SCHEDULING_ENABLED:
+        raise HTTPException(status_code=503, detail="Mentorship session changes are disabled pending safeguarding approval")
+
     user_id = current_user["user_id"]
     
     result = await db.execute(
