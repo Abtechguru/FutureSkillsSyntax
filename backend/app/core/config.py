@@ -45,6 +45,8 @@ class Settings(BaseSettings):
     MENTOR_ONBOARDING_ENABLED: bool = False
     MENTOR_MATCHING_ENABLED: bool = False
     MENTORSHIP_SCHEDULING_ENABLED: bool = False
+    PAYMENTS_ENABLED: bool = False
+    PUBLIC_LEADERBOARDS_ENABLED: bool = False
 
     # CORS
     CORS_ORIGINS: List[str] = ["http://localhost:3000", "http://localhost:5173"]
