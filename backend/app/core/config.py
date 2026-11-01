@@ -24,7 +24,7 @@ class Settings(BaseSettings):
     DATABASE_URL: str = "postgresql+asyncpg://postgres:postgres@localhost:54322/postgres"
     
     # Supabase Configuration
-    SUPABASE_URL: str = "https://jpnonlszlqvcdvqdorab.supabase.co"
+    SUPABASE_URL: str = ""
     SUPABASE_ANON_KEY: str = ""
     SUPABASE_SERVICE_ROLE_KEY: str = ""
     
@@ -42,6 +42,7 @@ class Settings(BaseSettings):
     CHILD_INTERACTIVE_FEATURES_ENABLED: bool = False
     CODE_EXECUTION_ENABLED: bool = False
     NON_AVATAR_UPLOADS_ENABLED: bool = False
+    AVATAR_UPLOADS_ENABLED: bool = False
     MENTOR_ONBOARDING_ENABLED: bool = False
     MENTOR_MATCHING_ENABLED: bool = False
     MENTORSHIP_SCHEDULING_ENABLED: bool = False
