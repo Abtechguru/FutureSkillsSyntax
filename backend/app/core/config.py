@@ -41,6 +41,7 @@ class Settings(BaseSettings):
     # must remain disabled until vetted supervision and a sandbox are deployed.
     CHILD_INTERACTIVE_FEATURES_ENABLED: bool = False
     CODE_EXECUTION_ENABLED: bool = False
+    NON_AVATAR_UPLOADS_ENABLED: bool = False
 
     # CORS
     CORS_ORIGINS: List[str] = ["http://localhost:3000", "http://localhost:5173"]
