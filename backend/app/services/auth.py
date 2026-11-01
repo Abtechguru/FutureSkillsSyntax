@@ -69,9 +69,9 @@ class AuthService:
         )
         user = result.scalar_one_or_none()
         
-        if not user:
+        if not user or not user.is_active:
             return None
-        
+
         token = self.generate_token()
         hashed = self.hash_token(token)
         
