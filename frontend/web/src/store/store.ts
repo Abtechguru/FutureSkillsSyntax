@@ -28,7 +28,7 @@ const persistConfig = {
   key: 'root',
   version: 1,
   storage,
-  whitelist: ['auth', 'ui'], // Only persist these slices
+  whitelist: ['ui'], // Never persist stale user identity/role; reload from backend
 }
 
 const rootReducer = combineReducers({
