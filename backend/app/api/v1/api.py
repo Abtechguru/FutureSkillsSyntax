@@ -3,7 +3,7 @@
 from fastapi import APIRouter
 from app.core.config import settings
 
-from app.api.v1.endpoints import auth, career, user, mentorship, gamification, learning, community, upload, collaboration, admin, payment
+from app.api.v1.endpoints import auth, user, mentorship, gamification, learning, upload, admin
 
 api_router = APIRouter()
 
@@ -16,6 +16,7 @@ api_router.include_router(
 
 # Payment routes
 if settings.PAYMENTS_ENABLED:
+    from app.api.v1.endpoints import payment
     api_router.include_router(
         payment.router,
         prefix="/payment",
@@ -37,11 +38,13 @@ api_router.include_router(
 )
 
 # Career routes
-api_router.include_router(
-    career.router,
-    prefix="/career",
-    tags=["Career"]
-)
+if settings.CAREER_API_ENABLED:
+    from app.api.v1.endpoints import career
+    api_router.include_router(
+        career.router,
+        prefix="/career",
+        tags=["Career"]
+    )
 
 # Mentorship routes
 api_router.include_router(
@@ -52,6 +55,7 @@ api_router.include_router(
 
 # Collaboration routes (WebSocket)
 if settings.CHILD_INTERACTIVE_FEATURES_ENABLED:
+    from app.api.v1.endpoints import collaboration
     api_router.include_router(
         collaboration.router,
         prefix="/collaboration",
@@ -74,6 +78,7 @@ api_router.include_router(
 
 # Community routes
 if settings.CHILD_INTERACTIVE_FEATURES_ENABLED:
+    from app.api.v1.endpoints import community
     api_router.include_router(
         community.router,
         prefix="/community",
