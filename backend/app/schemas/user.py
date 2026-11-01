@@ -86,7 +86,7 @@ class UserUpdate(BaseModel):
 
 
 class UserResponse(BaseModel):
-    id: str
+    id: int
     email: EmailStr
     username: str
     full_name: Optional[str] = None
@@ -109,7 +109,7 @@ class UserResponse(BaseModel):
 
 class UserPublicResponse(BaseModel):
     """Public user info (for other users to see)."""
-    id: str
+    id: int
     username: str
     full_name: Optional[str] = None
     profile_picture_url: Optional[str] = None
