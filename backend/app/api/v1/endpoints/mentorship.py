@@ -5,7 +5,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, and_, or_
 from sqlalchemy.orm import selectinload
 from typing import Dict, Any, List, Optional
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
 from app.core.database import get_db
 from app.core.security import get_current_user
@@ -224,7 +224,7 @@ async def get_sessions(
     if upcoming_only:
         query = query.where(
             and_(
-                MentorshipSession.session_date >= datetime.utcnow(),
+                MentorshipSession.session_date >= datetime.now(timezone.utc),
                 MentorshipSession.status == SessionStatus.SCHEDULED
             )
         )
@@ -298,7 +298,7 @@ async def create_session(
         )
     
     # Validate session date is in the future
-    if session_data.session_date <= datetime.utcnow():
+    if session_data.session_date <= datetime.now(timezone.utc):
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Session date must be in the future"
@@ -414,7 +414,7 @@ async def cancel_session(
         raise HTTPException(status_code=403, detail="Only the mentor or administrator may cancel this session")
 
     session.status = SessionStatus.CANCELLED
-    session.cancelled_at = datetime.utcnow()
+    session.cancelled_at = datetime.now(timezone.utc)
     session.cancellation_reason = reason
     session.cancelled_by = user_id
     
