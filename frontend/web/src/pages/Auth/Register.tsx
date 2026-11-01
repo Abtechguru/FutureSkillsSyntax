@@ -11,6 +11,7 @@ const Register: React.FC = () => {
   const { register, isLoading, error } = useAuth()
   const [values, setValues] = useState<RegisterData>({
     email: '',
+    isAdult: false,
     username: '',
     password: '',
     fullName: '',
@@ -87,6 +88,10 @@ const Register: React.FC = () => {
           <label className="block text-sm font-medium text-gray-800 dark:text-gray-100">
             Confirm password
             <input required type="password" autoComplete="new-password" minLength={8} className={fieldStyle} value={confirmation} onChange={(e) => setConfirmation(e.target.value)} />
+          </label>
+          <label className="flex items-start gap-3 text-sm leading-6 text-gray-700 dark:text-gray-300">
+            <input type="checkbox" required checked={values.isAdult} onChange={(e) => setField('isAdult', e.target.checked)} className="mt-1 h-4 w-4" />
+            <span>I confirm that I am at least 18 years old. I understand that creating an adult account does not enrol a child or provide guardian consent for programme participation.</span>
           </label>
           {(localError || error) && <p role="alert" className="rounded-lg bg-red-50 p-3 text-sm text-red-700">{localError || error}</p>}
           <button type="submit" disabled={isLoading} className="w-full rounded-lg bg-indigo-700 px-4 py-3 font-semibold text-white hover:bg-indigo-800 disabled:opacity-60">
