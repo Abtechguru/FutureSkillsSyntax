@@ -2,7 +2,7 @@
 
 from fastapi import APIRouter, Depends, HTTPException, status, Query
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, and_, func
+from sqlalchemy import text, select, and_, func
 from typing import Dict, Any, List, Optional
 from datetime import datetime
 
@@ -64,7 +64,7 @@ async def get_learning_paths(
     
     query += " ORDER BY lp.is_featured DESC, lp.created_at DESC"
     
-    result = await db.execute(query, params)
+    result = await db.execute(text(query), params)
     paths = result.fetchall()
     
     return [
@@ -111,7 +111,7 @@ async def get_learning_path(
         WHERE lp.id = :path_id AND lp.is_published = true
     """
     
-    result = await db.execute(path_query, {"path_id": path_id, "user_id": user_id})
+    result = await db.execute(text(path_query), {"path_id": path_id, "user_id": user_id})
     path = result.first()
     
     if not path:
@@ -133,7 +133,7 @@ async def get_learning_path(
         ORDER BY m.order_index
     """
     
-    modules_result = await db.execute(modules_query, {"path_id": path_id, "user_id": user_id})
+    modules_result = await db.execute(text(modules_query), {"path_id": path_id, "user_id": user_id})
     modules = modules_result.fetchall()
     
     return {
@@ -183,7 +183,7 @@ async def enroll_in_path(
     
     # Check if path exists
     path_result = await db.execute(
-        "SELECT id, total_modules FROM learning_paths WHERE id = :path_id AND is_published = true",
+        text("SELECT id, total_modules FROM learning_paths WHERE id = :path_id AND is_published = true"),
         {"path_id": path_id}
     )
     path = path_result.first()
@@ -196,7 +196,7 @@ async def enroll_in_path(
     
     # Check if already enrolled
     enrollment_result = await db.execute(
-        "SELECT id FROM enrollments WHERE user_id = :user_id AND path_id = :path_id",
+        text("SELECT id FROM enrollments WHERE user_id = :user_id AND path_id = :path_id"),
         {"user_id": user_id, "path_id": path_id}
     )
     
@@ -208,17 +208,17 @@ async def enroll_in_path(
     
     # Get first module
     first_module = await db.execute(
-        "SELECT id FROM learning_modules WHERE path_id = :path_id ORDER BY order_index LIMIT 1",
+        text("SELECT id FROM learning_modules WHERE path_id = :path_id ORDER BY order_index LIMIT 1"),
         {"path_id": path_id}
     )
     first_mod = first_module.first()
     
     # Create enrollment
     await db.execute(
-        """
+        text("""
         INSERT INTO enrollments (user_id, path_id, current_module_id, started_at)
         VALUES (:user_id, :path_id, :current_module_id, :now)
-        """,
+        """),
         {
             "user_id": user_id,
             "path_id": path_id,
@@ -229,7 +229,7 @@ async def enroll_in_path(
     
     # Update enrollment count
     await db.execute(
-        "UPDATE learning_paths SET total_enrollments = total_enrollments + 1 WHERE id = :path_id",
+        text("UPDATE learning_paths SET total_enrollments = total_enrollments + 1 WHERE id = :path_id"),
         {"path_id": path_id}
     )
     
@@ -255,12 +255,12 @@ async def get_path_progress(
     
     # Get enrollment
     enrollment_result = await db.execute(
-        """
+        text("""
         SELECT e.*, lp.total_modules
         FROM enrollments e
         JOIN learning_paths lp ON e.path_id = lp.id
         WHERE e.user_id = :user_id AND e.path_id = :path_id
-        """,
+        """),
         {"user_id": user_id, "path_id": path_id}
     )
     enrollment = enrollment_result.first()
@@ -273,7 +273,7 @@ async def get_path_progress(
     
     # Get module progress
     progress_result = await db.execute(
-        """
+        text("""
         SELECT 
             m.id,
             m.title,
@@ -285,7 +285,7 @@ async def get_path_progress(
         LEFT JOIN module_progress mp ON m.id = mp.module_id AND mp.user_id = :user_id
         WHERE m.path_id = :path_id
         ORDER BY m.order_index
-        """,
+        """),
         {"path_id": path_id, "user_id": user_id}
     )
     modules = progress_result.fetchall()
@@ -328,7 +328,7 @@ async def complete_module(
     
     # Verify enrollment
     enrollment_result = await db.execute(
-        "SELECT id FROM enrollments WHERE user_id = :user_id AND path_id = :path_id",
+        text("SELECT id FROM enrollments WHERE user_id = :user_id AND path_id = :path_id"),
         {"user_id": user_id, "path_id": path_id}
     )
     enrollment = enrollment_result.first()
@@ -341,7 +341,7 @@ async def complete_module(
     
     # Get module
     module_result = await db.execute(
-        "SELECT id, xp_reward FROM learning_modules WHERE id = :module_id AND path_id = :path_id",
+        text("SELECT id, xp_reward FROM learning_modules WHERE id = :module_id AND path_id = :path_id"),
         {"module_id": module_id, "path_id": path_id}
     )
     module = module_result.first()
@@ -354,14 +354,14 @@ async def complete_module(
     
     # Update or create module progress
     await db.execute(
-        """
+        text("""
         INSERT INTO module_progress (user_id, module_id, enrollment_id, status, progress_percentage, completed_at)
         VALUES (:user_id, :module_id, :enrollment_id, 'completed', 100, :now)
         ON CONFLICT (user_id, module_id) DO UPDATE SET
             status = 'completed',
             progress_percentage = 100,
             completed_at = :now
-        """,
+        """),
         {
             "user_id": user_id,
             "module_id": module_id,
@@ -372,7 +372,7 @@ async def complete_module(
     
     # Recalculate path progress
     await db.execute(
-        """
+        text("""
         UPDATE enrollments SET
             progress_percentage = (
                 SELECT (COUNT(*) FILTER (WHERE mp.status = 'completed')::float / COUNT(*)::float) * 100
@@ -382,24 +382,24 @@ async def complete_module(
             ),
             last_activity_at = :now
         WHERE id = :enrollment_id
-        """,
+        """),
         {"user_id": user_id, "path_id": path_id, "enrollment_id": enrollment.id, "now": now}
     )
     
     # Award XP
     xp_reward = module.xp_reward or settings.XP_PER_MODULE
     await db.execute(
-        "UPDATE users SET experience_points = experience_points + :xp WHERE id = :user_id",
+        text("UPDATE users SET experience_points = experience_points + :xp WHERE id = :user_id"),
         {"xp": xp_reward, "user_id": user_id}
     )
     
     # Log XP transaction
     await db.execute(
-        """
+        text("""
         INSERT INTO xp_transactions (user_id, amount, balance_after, source_type, source_id, description)
         SELECT :user_id, :amount, u.experience_points, 'module', :module_id, 'Module completed'
         FROM users u WHERE u.id = :user_id
-        """,
+        """),
         {"user_id": user_id, "amount": xp_reward, "module_id": module_id}
     )
     
