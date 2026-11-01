@@ -154,7 +154,7 @@ class ApiService {
     me: (token: string) =>
       this.api.get('/api/v1/auth/me', { headers: { Authorization: `Bearer ${token}` } }),
 
-    register: (data: { email: string; username: string; password: string; full_name: string; role: 'career_seeker' | 'parent_guardian' }) =>
+    register: (data: { email: string; is_adult: boolean; username: string; password: string; full_name: string; role: 'career_seeker' | 'parent_guardian' }) =>
       this.api.post('/api/v1/auth/register', data),
 
     logout: () =>
