@@ -3,6 +3,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func, update
 from typing import List, Dict, Any, Optional
 from app.core.database import get_db
+from app.core.config import settings
 from app.core.security import get_current_user, get_password_hash
 from app.models.user import User, UserRole
 from app.models.mentorship import MentorAssignment, MentorshipSession
@@ -67,7 +68,9 @@ async def create_mentor(
     db: AsyncSession = Depends(get_db),
     admin: Dict = Depends(check_admin)
 ):
-    """Manually add a new mentor."""
+    """Manually add a new mentor after documented screening."""
+    if not settings.MENTOR_ONBOARDING_ENABLED:
+        raise HTTPException(status_code=503, detail="Mentor onboarding is awaiting safeguarding approval")
     # Check if user exists
     existing = await db.scalar(select(User).where(User.email == mentor_data.email))
     if existing:
@@ -91,7 +94,22 @@ async def create_assignment(
     db: AsyncSession = Depends(get_db),
     admin: Dict = Depends(check_admin)
 ):
-    """Assign a mentor to a mentee."""
+    """Assign an approved mentor to a guardian-verified learner."""
+    if not settings.MENTOR_MATCHING_ENABLED:
+        raise HTTPException(status_code=503, detail="Mentor matching is awaiting safeguarding approval")
+    mentor = await db.get(User, data.mentor_id)
+    mentee = await db.get(User, data.mentee_id)
+    if (
+        not mentor
+        or mentor.role != UserRole.MENTOR
+        or not mentor.is_verified
+        or not mentor.is_active
+        or not mentee
+        or mentee.role != UserRole.MENTEE
+        or not mentee.guardian_verified
+        or not mentee.is_active
+    ):
+        raise HTTPException(status_code=400, detail="Approved mentor and guardian-verified learner are required")
     assignment = MentorAssignment(
         mentor_id=data.mentor_id,
         mentee_id=data.mentee_id,
