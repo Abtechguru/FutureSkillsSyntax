@@ -11,6 +11,7 @@
     "preview:prod": "vite preview --port 4173 --host",
     "lint": "eslint src --report-unused-disable-directives --max-warnings 0",
     "lint:fix": "eslint src --fix",
+    "lint:core": "eslint src/App.tsx src/pages/Home.tsx src/pages/Auth/Login.tsx src/pages/Auth/Register.tsx src/pages/Auth/ResetPassword.tsx src/pages/Profile/UserProfile.tsx src/pages/Dashboard/index.tsx src/components/layout/Header.tsx src/components/layout/Sidebar.tsx src/components/layout/Footer.tsx src/components/auth/ProtectedRoute.tsx --max-warnings 0",
     "format": "prettier --write \"src/**/*.{ts,tsx,css,json,md}\"",
     "format:check": "prettier --check \"src/**/*.{ts,tsx,css,json,md}\"",
     "type-check": "tsc --noEmit",
