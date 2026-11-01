@@ -21,6 +21,7 @@ const AdminLogin = lazy(() => import('@/pages/Admin/Login'))
 const NotFound = lazy(() => import('@/pages/NotFound'))
 
 import ProtectedRoute from '@/components/auth/ProtectedRoute'
+import { UserRole } from '@/types'
 
 function App() {
   return (
@@ -54,7 +55,9 @@ function App() {
                 <Route path="profile">
                   <Route index element={<Profile />} />
                 </Route>
-                <Route path="admin" element={<AdminDashboard />} />
+                <Route element={<ProtectedRoute allowedRoles={[UserRole.ADMIN]} />}>
+                  <Route path="admin" element={<AdminDashboard />} />
+                </Route>
               </Route>
 
               <Route path="*" element={<NotFound />} />
