@@ -125,15 +125,14 @@ class ApiService {
 
         const response = await axios.post(
           `${API_BASE_URL}/api/v1/auth/refresh`,
-          null,
-          { params: { refresh_token: refreshTokenValue } }
+          { refresh_token: refreshTokenValue }
         )
 
-        const { access_token } = response.data
+        const { access_token, refresh_token } = response.data
 
         // Update store with new token
         if (this.refreshTokenAction) {
-          this.store?.dispatch(this.refreshTokenAction({ accessToken: access_token }))
+          this.store?.dispatch(this.refreshTokenAction({ accessToken: access_token, refreshToken: refresh_token }))
         }
 
         resolve(access_token)
@@ -152,6 +151,9 @@ class ApiService {
     login: (credentials: LoginCredentials) =>
       this.api.post('/api/v1/auth/login', credentials),
 
+    me: (token: string) =>
+      this.api.get('/api/v1/auth/me', { headers: { Authorization: `Bearer ${token}` } }),
+
     register: (data: RegisterData) =>
       this.api.post('/api/v1/auth/register', data),
 
@@ -165,7 +167,7 @@ class ApiService {
       this.api.post('/api/v1/auth/reset-password', { token, password }),
 
     verifyEmail: (token: string) =>
-      this.api.post('/api/v1/auth/verify-email', { token }),
+      this.api.post('/api/v1/auth/verify-email', null, { params: { token } }),
   }
 
   // User endpoints
@@ -295,7 +297,7 @@ class ApiService {
     file: (file: File, type: 'avatar' | 'document' | 'project') => {
       const formData = new FormData()
       formData.append('file', file)
-      formData.append('type', type)
+      formData.append('file_type', type)
 
       return this.api.post('/api/v1/upload', formData, {
         headers: {
