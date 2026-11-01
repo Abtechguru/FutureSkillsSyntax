@@ -1,6 +1,7 @@
 """API router configuration."""
 
 from fastapi import APIRouter
+from app.core.config import settings
 
 from app.api.v1.endpoints import auth, career, user, mentorship, gamification, learning, community, upload, goals, collaboration, admin, payment
 
@@ -49,11 +50,12 @@ api_router.include_router(
 )
 
 # Collaboration routes (WebSocket)
-api_router.include_router(
-    collaboration.router,
-    prefix="/collaboration",
-    tags=["Collaboration"]
-)
+if settings.CHILD_INTERACTIVE_FEATURES_ENABLED:
+    api_router.include_router(
+        collaboration.router,
+        prefix="/collaboration",
+        tags=["Collaboration"]
+    )
 
 # Gamification routes
 api_router.include_router(
@@ -70,11 +72,12 @@ api_router.include_router(
 )
 
 # Community routes
-api_router.include_router(
-    community.router,
-    prefix="/community",
-    tags=["Community"]
-)
+if settings.CHILD_INTERACTIVE_FEATURES_ENABLED:
+    api_router.include_router(
+        community.router,
+        prefix="/community",
+        tags=["Community"]
+    )
 
 # File upload routes
 api_router.include_router(
