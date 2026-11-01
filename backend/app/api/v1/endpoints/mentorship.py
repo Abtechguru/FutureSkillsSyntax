@@ -44,6 +44,12 @@ async def create_task(
             detail="Only mentors can create tasks"
         )
     
+    assignment = await db.get(MentorAssignment, task_data.assignment_id)
+    if not assignment or not assignment.is_active:
+        raise HTTPException(status_code=404, detail="Active assignment not found")
+    if current_user["role"] != "admin" and assignment.mentor_id != current_user["user_id"]:
+        raise HTTPException(status_code=403, detail="Not authorized for this assignment")
+
     task = MentorshipTask(**task_data.model_dump())
     db.add(task)
     await db.commit()
@@ -57,6 +63,12 @@ async def get_assignment_tasks(
     db: AsyncSession = Depends(get_db)
 ):
     """Get all tasks for a specific mentorship assignment."""
+    assignment = await db.get(MentorAssignment, assignment_id)
+    if not assignment or (
+        current_user["role"] != "admin"
+        and current_user["user_id"] not in (assignment.mentor_id, assignment.mentee_id)
+    ):
+        raise HTTPException(status_code=404, detail="Assignment not found")
     result = await db.execute(
         select(MentorshipTask).where(MentorshipTask.assignment_id == assignment_id)
     )
@@ -76,6 +88,15 @@ async def submit_task(
     if not task:
         raise HTTPException(status_code=404, detail="Task not found")
     
+    assignment = await db.get(MentorAssignment, task.assignment_id)
+    if (
+        not assignment
+        or not assignment.is_active
+        or assignment.mentee_id != current_user["user_id"]
+        or current_user["role"] != "mentee"
+    ):
+        raise HTTPException(status_code=403, detail="Not authorized to submit this task")
+
     submission = TaskSubmission(
         task_id=task_id,
         mentee_id=current_user["user_id"],
@@ -97,6 +118,12 @@ async def run_code(
     current_user: Dict[str, Any] = Depends(get_current_user)
 ):
     """Execute code in the integrated IDE."""
+    if not settings.CODE_EXECUTION_ENABLED:
+        raise HTTPException(status_code=503, detail="Code execution is disabled until sandbox and safeguarding review")
+    if len(code) > 12000:
+        raise HTTPException(status_code=413, detail="Code is too large")
+    if language.lower() not in ("python", "javascript", "typescript"):
+        raise HTTPException(status_code=400, detail="Unsupported language")
     result = await execute_code(language, code)
     return result
 
@@ -148,14 +175,11 @@ async def get_assignment(
         .where(
             and_(
                 MentorAssignment.id == assignment_id,
-                or_(
-                    MentorAssignment.mentor_id == user_id,
-                    MentorAssignment.mentee_id == user_id
-                )
+                MentorAssignment.mentor_id == user_id if current_user["role"] != "admin" else True
             )
         )
     )
-    
+
     assignment = result.scalar_one_or_none()
     if not assignment:
         raise HTTPException(
@@ -246,7 +270,11 @@ async def create_session(
     """Create a new mentorship session."""
     user_id = current_user["user_id"]
     
-    # Verify assignment exists and user is part of it
+    # Only an authorised mentor or administrator may schedule a session.
+    if current_user["role"] not in ("mentor", "admin"):
+        raise HTTPException(status_code=403, detail="Only mentors or administrators may schedule sessions")
+
+    # Verify assignment exists and user is authorised for it
     result = await db.execute(
         select(MentorAssignment).where(
             and_(
@@ -332,6 +360,9 @@ async def update_session(
             detail="Cannot update session with current status"
         )
     
+    if current_user["role"] != "admin" and session.mentor_id != user_id:
+        raise HTTPException(status_code=403, detail="Only the mentor or administrator may edit this session")
+
     # Update fields
     update_data = session_data.model_dump(exclude_unset=True)
     for field, value in update_data.items():
@@ -378,6 +409,9 @@ async def cancel_session(
             detail="Only scheduled sessions can be cancelled"
         )
     
+    if current_user["role"] != "admin" and session.mentor_id != user_id:
+        raise HTTPException(status_code=403, detail="Only the mentor or administrator may cancel this session")
+
     session.status = SessionStatus.CANCELLED
     session.cancelled_at = datetime.utcnow()
     session.cancellation_reason = reason
@@ -425,6 +459,9 @@ async def complete_session(
             detail="Session already completed"
         )
     
+    if current_user["role"] != "admin" and session.mentor_id != user_id:
+        raise HTTPException(status_code=403, detail="Only the mentor or administrator may complete this session")
+
     # Update session
     session.status = SessionStatus.COMPLETED
     session.mentee_reflection = completion_data.reflection
