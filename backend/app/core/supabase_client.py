@@ -32,8 +32,12 @@ class SupabaseStorage:
     """Supabase Storage wrapper for file operations."""
     
     def __init__(self, bucket: str = "uploads"):
-        self.client = get_supabase_client()
         self.bucket = bucket
+
+    @property
+    def client(self) -> Client:
+        """Initialize storage only when an operation actually requires it."""
+        return get_supabase_client()
     
     async def upload_file(
         self,

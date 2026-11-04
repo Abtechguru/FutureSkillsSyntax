@@ -58,7 +58,7 @@ async def get_feed(
     
     query += " ORDER BY p.is_pinned DESC, p.created_at DESC LIMIT :limit OFFSET :offset"
     
-    result = await db.execute(query, params)
+    result = await db.execute(text(query), params)
     posts = result.fetchall()
     
     return [
@@ -99,11 +99,11 @@ async def create_post(
     user_id = current_user["user_id"]
     
     result = await db.execute(
-        """
+        text("""
         INSERT INTO posts (author_id, title, content, content_type, images, tags, category)
         VALUES (:author_id, :title, :content, :content_type, :images, :tags, :category)
         RETURNING *
-        """,
+        """),
         {
             "author_id": user_id,
             "title": post_data.title,
@@ -120,7 +120,7 @@ async def create_post(
     
     # Get author info
     author_result = await db.execute(
-        "SELECT username, full_name, profile_picture_url FROM users WHERE id = :user_id",
+        text("SELECT username, full_name, profile_picture_url FROM users WHERE id = :user_id"),
         {"user_id": user_id}
     )
     author = author_result.first()
@@ -158,7 +158,7 @@ async def get_post(
     user_id = current_user["user_id"]
     
     result = await db.execute(
-        """
+        text("""
         SELECT 
             p.*,
             u.username as author_username,
@@ -169,7 +169,7 @@ async def get_post(
         FROM posts p
         JOIN users u ON p.author_id = u.id
         WHERE p.id = :post_id AND p.is_published = true
-        """,
+        """),
         {"post_id": post_id, "user_id": user_id}
     )
     
@@ -182,7 +182,7 @@ async def get_post(
     
     # Increment view count
     await db.execute(
-        "UPDATE posts SET views_count = views_count + 1 WHERE id = :post_id",
+        text("UPDATE posts SET views_count = views_count + 1 WHERE id = :post_id"),
         {"post_id": post_id}
     )
     await db.commit()
@@ -221,7 +221,7 @@ async def delete_post(
     user_id = current_user["user_id"]
     
     result = await db.execute(
-        "DELETE FROM posts WHERE id = :post_id AND author_id = :user_id RETURNING id",
+        text("DELETE FROM posts WHERE id = :post_id AND author_id = :user_id RETURNING id"),
         {"post_id": post_id, "user_id": user_id}
     )
     
@@ -247,7 +247,7 @@ async def get_comments(
     user_id = current_user["user_id"]
     
     result = await db.execute(
-        """
+        text("""
         SELECT 
             c.*,
             u.username as author_username,
@@ -258,7 +258,7 @@ async def get_comments(
         JOIN users u ON c.author_id = u.id
         WHERE c.post_id = :post_id
         ORDER BY c.created_at ASC
-        """,
+        """),
         {"post_id": post_id, "user_id": user_id}
     )
     
@@ -295,7 +295,7 @@ async def add_comment(
     
     # Verify post exists
     post_check = await db.execute(
-        "SELECT id FROM posts WHERE id = :post_id AND is_published = true",
+        text("SELECT id FROM posts WHERE id = :post_id AND is_published = true"),
         {"post_id": post_id}
     )
     if not post_check.first():
@@ -305,11 +305,11 @@ async def add_comment(
         )
     
     result = await db.execute(
-        """
+        text("""
         INSERT INTO comments (post_id, author_id, content, parent_id)
         VALUES (:post_id, :author_id, :content, :parent_id)
         RETURNING *
-        """,
+        """),
         {
             "post_id": post_id,
             "author_id": user_id,
@@ -323,7 +323,7 @@ async def add_comment(
     
     # Get author info
     author_result = await db.execute(
-        "SELECT username, full_name, profile_picture_url FROM users WHERE id = :user_id",
+        text("SELECT username, full_name, profile_picture_url FROM users WHERE id = :user_id"),
         {"user_id": user_id}
     )
     author = author_result.first()
@@ -358,14 +358,14 @@ async def react_to_post(
     
     # Check if already reacted
     existing = await db.execute(
-        "SELECT id FROM reactions WHERE user_id = :user_id AND target_type = 'post' AND target_id = :post_id",
+        text("SELECT id FROM reactions WHERE user_id = :user_id AND target_type = 'post' AND target_id = :post_id"),
         {"user_id": user_id, "post_id": post_id}
     )
     
     if existing.first():
         # Remove reaction
         await db.execute(
-            "DELETE FROM reactions WHERE user_id = :user_id AND target_type = 'post' AND target_id = :post_id",
+            text("DELETE FROM reactions WHERE user_id = :user_id AND target_type = 'post' AND target_id = :post_id"),
             {"user_id": user_id, "post_id": post_id}
         )
         await db.commit()
@@ -373,10 +373,10 @@ async def react_to_post(
     else:
         # Add reaction
         await db.execute(
-            """
+            text("""
             INSERT INTO reactions (user_id, target_type, target_id, reaction_type)
             VALUES (:user_id, 'post', :post_id, :reaction_type)
-            """,
+            """),
             {"user_id": user_id, "post_id": post_id, "reaction_type": reaction_data.reaction_type or "like"}
         )
         await db.commit()
@@ -395,20 +395,20 @@ async def toggle_bookmark(
     user_id = current_user["user_id"]
     
     existing = await db.execute(
-        "SELECT id FROM bookmarks WHERE user_id = :user_id AND target_type = 'post' AND target_id = :post_id",
+        text("SELECT id FROM bookmarks WHERE user_id = :user_id AND target_type = 'post' AND target_id = :post_id"),
         {"user_id": user_id, "post_id": post_id}
     )
     
     if existing.first():
         await db.execute(
-            "DELETE FROM bookmarks WHERE user_id = :user_id AND target_type = 'post' AND target_id = :post_id",
+            text("DELETE FROM bookmarks WHERE user_id = :user_id AND target_type = 'post' AND target_id = :post_id"),
             {"user_id": user_id, "post_id": post_id}
         )
         await db.commit()
         return {"message": "Bookmark removed", "is_bookmarked": False}
     else:
         await db.execute(
-            "INSERT INTO bookmarks (user_id, target_type, target_id) VALUES (:user_id, 'post', :post_id)",
+            text("INSERT INTO bookmarks (user_id, target_type, target_id) VALUES (:user_id, 'post', :post_id)"),
             {"user_id": user_id, "post_id": post_id}
         )
         await db.commit()
@@ -433,20 +433,20 @@ async def toggle_follow(
         )
     
     existing = await db.execute(
-        "SELECT id FROM follows WHERE follower_id = :user_id AND following_id = :target_id",
+        text("SELECT id FROM follows WHERE follower_id = :user_id AND following_id = :target_id"),
         {"user_id": user_id, "target_id": target_user_id}
     )
     
     if existing.first():
         await db.execute(
-            "DELETE FROM follows WHERE follower_id = :user_id AND following_id = :target_id",
+            text("DELETE FROM follows WHERE follower_id = :user_id AND following_id = :target_id"),
             {"user_id": user_id, "target_id": target_user_id}
         )
         await db.commit()
         return {"message": "Unfollowed", "is_following": False}
     else:
         await db.execute(
-            "INSERT INTO follows (follower_id, following_id) VALUES (:user_id, :target_id)",
+            text("INSERT INTO follows (follower_id, following_id) VALUES (:user_id, :target_id)"),
             {"user_id": user_id, "target_id": target_user_id}
         )
         await db.commit()

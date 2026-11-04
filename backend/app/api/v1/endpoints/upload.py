@@ -6,6 +6,7 @@ from typing import Dict, Any, Optional
 import uuid
 
 from app.core.database import get_db
+from app.core.uploads import validated_image_extension, owned_storage_path
 from app.core.security import get_current_user
 from app.core.config import settings
 from app.core.supabase_client import avatars_storage, documents_storage, projects_storage
@@ -35,9 +36,15 @@ async def upload_file(
     - **image**: General images (max 5MB)
     """
     user_id = current_user["user_id"]
-    
+    if file_type == "avatar" and not settings.AVATAR_UPLOADS_ENABLED:
+        raise HTTPException(status_code=503, detail="Avatar uploads are not yet enabled")
+    if file_type != "avatar" and not settings.NON_AVATAR_UPLOADS_ENABLED:
+        raise HTTPException(status_code=503, detail="Document and project uploads are not yet enabled")
+    if current_user["role"] == "mentee" and file_type in ("avatar", "image"):
+        raise HTTPException(status_code=403, detail="Minor profile images require guardian safeguards")
+
     # Read file content
-    content = await file.read()
+    content = await file.read(MAX_FILE_SIZE + 1)
     file_size = len(content)
     
     # Validate based on type
@@ -89,7 +96,13 @@ async def upload_file(
         storage = projects_storage
     
     # Generate unique filename
-    ext = file.filename.split(".")[-1] if file.filename and "." in file.filename else "bin"
+    if file_type in ("avatar", "image"):
+        ext = validated_image_extension(file.content_type, content)
+    else:
+        # Non-avatar uploads remain disabled unless explicitly configured.
+        ext = (file.filename or "file.bin").rsplit(".", 1)[-1].lower()
+        if not ext.isalnum() or len(ext) > 8:
+            raise HTTPException(status_code=400, detail="Invalid extension")
     filename = f"{user_id}/{file_type}/{uuid.uuid4()}.{ext}"
     
     try:
@@ -110,14 +123,14 @@ async def upload_file(
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to upload file: {str(e)}"
+            detail="Unable to upload file"
         )
 
 
 @router.delete("/{file_path:path}")
 async def delete_file(
     file_path: str,
-    file_type: str = Form(..., regex="^(avatar|document|project)$"),
+    file_type: str = Form(..., regex="^(avatar|document|project|image)$"),
     current_user: Dict[str, Any] = Depends(get_current_user),
     db: AsyncSession = Depends(get_db)
 ):
@@ -125,16 +138,20 @@ async def delete_file(
     user_id = current_user["user_id"]
     
     # Verify the file belongs to the user (path should start with user_id)
-    if not file_path.startswith(f"{user_id}/"):
+    if not owned_storage_path(user_id, file_path, file_type):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Not authorized to delete this file"
         )
     
+    # Restrict signed links to short expiry windows and known storage types.
+    if file_type not in ("avatar", "document", "project", "image") or not (60 <= expires_in <= 900):
+        raise HTTPException(status_code=400, detail="Invalid file type or expiry")
+
     # Select storage bucket
     if file_type == "avatar":
         storage = avatars_storage
-    elif file_type == "document":
+    elif file_type in ("document", "image"):
         storage = documents_storage
     else:
         storage = projects_storage
@@ -145,7 +162,7 @@ async def delete_file(
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to delete file: {str(e)}"
+            detail="Unable to delete file"
         )
 
 
@@ -153,7 +170,7 @@ async def delete_file(
 async def get_signed_url(
     file_path: str,
     file_type: str = "document",
-    expires_in: int = 3600,
+    expires_in: int = 900,
     current_user: Dict[str, Any] = Depends(get_current_user),
     db: AsyncSession = Depends(get_db)
 ):
@@ -161,7 +178,7 @@ async def get_signed_url(
     user_id = current_user["user_id"]
     
     # Verify the file belongs to the user
-    if not file_path.startswith(f"{user_id}/"):
+    if not owned_storage_path(user_id, file_path, file_type):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Not authorized to access this file"
@@ -170,7 +187,7 @@ async def get_signed_url(
     # Select storage bucket
     if file_type == "avatar":
         storage = avatars_storage
-    elif file_type == "document":
+    elif file_type in ("document", "image"):
         storage = documents_storage
     else:
         storage = projects_storage
@@ -181,5 +198,5 @@ async def get_signed_url(
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to generate signed URL: {str(e)}"
+            detail="Unable to generate signed URL"
         )

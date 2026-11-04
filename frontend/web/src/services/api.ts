@@ -1,7 +1,7 @@
 import axios from 'axios'
 import type { AxiosInstance, AxiosRequestConfig, AxiosResponse, InternalAxiosRequestConfig } from 'axios'
 import { toast } from 'react-hot-toast'
-import type { User, LoginCredentials, RegisterData, CareerField, MentorshipSession } from '@/types'
+import type { User, LoginCredentials, CareerField, MentorshipSession } from '@/types'
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000'
 
@@ -31,7 +31,7 @@ class ApiService {
       (config: InternalAxiosRequestConfig) => {
         const token = this.store?.getState()?.auth?.accessToken
 
-        if (token && config.headers) {
+        if (token && config.headers && !config.headers.Authorization) {
           config.headers.Authorization = `Bearer ${token}`
         }
 
@@ -52,7 +52,7 @@ class ApiService {
         const originalRequest = error.config
 
         // Handle 401 Unauthorized (token expired)
-        if (error.response?.status === 401 && !originalRequest._retry) {
+        if (error.response?.status === 401 && originalRequest && !originalRequest._retry && !originalRequest.url?.includes('/auth/')) {
           originalRequest._retry = true
 
           try {
@@ -128,11 +128,11 @@ class ApiService {
           { refresh_token: refreshTokenValue }
         )
 
-        const { access_token } = response.data
+        const { access_token, refresh_token } = response.data
 
         // Update store with new token
         if (this.refreshTokenAction) {
-          this.store?.dispatch(this.refreshTokenAction({ accessToken: access_token }))
+          this.store?.dispatch(this.refreshTokenAction({ accessToken: access_token, refreshToken: refresh_token }))
         }
 
         resolve(access_token)
@@ -151,7 +151,10 @@ class ApiService {
     login: (credentials: LoginCredentials) =>
       this.api.post('/api/v1/auth/login', credentials),
 
-    register: (data: RegisterData) =>
+    me: (token: string) =>
+      this.api.get('/api/v1/auth/me', { headers: { Authorization: `Bearer ${token}` } }),
+
+    register: (data: { email: string; is_adult: boolean; username: string; password: string; full_name: string; role: 'career_seeker' | 'parent_guardian' }) =>
       this.api.post('/api/v1/auth/register', data),
 
     logout: () =>
@@ -164,7 +167,7 @@ class ApiService {
       this.api.post('/api/v1/auth/reset-password', { token, password }),
 
     verifyEmail: (token: string) =>
-      this.api.post('/api/v1/auth/verify-email', { token }),
+      this.api.post('/api/v1/auth/verify-email', null, { params: { token } }),
   }
 
   // User endpoints
@@ -177,7 +180,7 @@ class ApiService {
 
     updateAvatar: (file: File) => {
       const formData = new FormData()
-      formData.append('avatar', file)
+      formData.append('file', file)
       return this.api.post('/api/v1/user/avatar', formData, {
         headers: {
           'Content-Type': 'multipart/form-data',
@@ -294,7 +297,7 @@ class ApiService {
     file: (file: File, type: 'avatar' | 'document' | 'project') => {
       const formData = new FormData()
       formData.append('file', file)
-      formData.append('type', type)
+      formData.append('file_type', type)
 
       return this.api.post('/api/v1/upload', formData, {
         headers: {

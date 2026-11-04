@@ -42,9 +42,9 @@ export const useAuth = () => {
         async (data: RegisterData) => {
             try {
                 const result = await dispatch(registerUser(data)).unwrap()
-                toast.success('Account created successfully!')
+                toast.success('Account created. Please verify your email before participating.')
                 dispatch(clearRegistrationData())
-                navigate('/onboarding-complete')
+                navigate('/login?registered=1')
                 return result
             } catch (error: any) {
                 toast.error(error || 'Registration failed')
@@ -84,7 +84,6 @@ export const useAuth = () => {
             try {
                 await dispatch(resetPassword({ token, password })).unwrap()
                 toast.success('Password reset successfully')
-                navigate('/login')
                 return true
             } catch (error: any) {
                 toast.error(error || 'Failed to reset password')

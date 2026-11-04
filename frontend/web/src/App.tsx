@@ -21,6 +21,7 @@ const AdminLogin = lazy(() => import('@/pages/Admin/Login'))
 const NotFound = lazy(() => import('@/pages/NotFound'))
 
 import ProtectedRoute from '@/components/auth/ProtectedRoute'
+import { UserRole } from '@/types'
 
 function App() {
   return (
@@ -45,6 +46,7 @@ function App() {
               <Route path="login" element={<Login />} />
               <Route path="register" element={<Register />} />
               <Route path="forgot-password" element={<ForgotPassword />} />
+              <Route path="reset-password" element={<ResetPassword />} />
               <Route path="reset-password/:token" element={<ResetPassword />} />
               <Route path="verify-email" element={<VerifyEmail />} />
               <Route path="admin/login" element={<AdminLogin />} />
@@ -54,9 +56,12 @@ function App() {
                 <Route path="profile">
                   <Route index element={<Profile />} />
                 </Route>
-                <Route path="admin" element={<AdminDashboard />} />
+                <Route element={<ProtectedRoute allowedRoles={[UserRole.ADMIN]} />}>
+                  <Route path="admin" element={<AdminDashboard />} />
+                </Route>
               </Route>
 
+              <Route path="unauthorized" element={<NotFound />} />
               <Route path="*" element={<NotFound />} />
             </Route>
           </Routes>

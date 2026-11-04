@@ -81,6 +81,9 @@ class MentorshipSession(Base):
     mentor_notes = Column(Text, nullable=True)
     mentee_reflection = Column(Text, nullable=True)
     session_rating = Column(Integer, nullable=True)  # 1-5
+    cancelled_at = Column(DateTime(timezone=True), nullable=True)
+    cancellation_reason = Column(Text, nullable=True)
+    cancelled_by = Column(Integer, ForeignKey("users.id"), nullable=True)
     
     # Timestamps
     created_at = Column(DateTime(timezone=True), server_default=func.now())

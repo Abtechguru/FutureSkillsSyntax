@@ -2,7 +2,7 @@
 
 from fastapi import APIRouter, Depends, HTTPException, status, Query
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, update, func, and_
+from sqlalchemy import text, select, update, func, and_
 from typing import Dict, Any, List, Optional
 from datetime import datetime, date
 
@@ -43,29 +43,18 @@ async def get_gamification_profile(
             detail="User not found"
         )
     
-    # Get streak info
+    # Read account-owned progress through explicit SQLAlchemy 2 textual statements.
     streak_result = await db.execute(
-        select("*").select_from(
-            func.table("user_streaks")
-        ).where(
-            func.column("user_id") == user_id
-        )
+        text("SELECT current_streak, longest_streak FROM user_streaks WHERE user_id = :user_id"),
+        {"user_id": user_id},
     )
     streak = streak_result.first()
-    
-    # Get badge count
     badge_result = await db.execute(
-        select(func.count()).select_from(
-            func.table("user_badges")
-        ).where(
-            and_(
-                func.column("user_id") == user_id,
-                func.column("is_unlocked") == True
-            )
-        )
+        text("SELECT COUNT(*) FROM user_badges WHERE user_id = :user_id AND is_unlocked = true"),
+        {"user_id": user_id},
     )
     badges_count = badge_result.scalar() or 0
-    
+
     # Calculate level progress
     current_level = user.current_level
     xp = user.experience_points
@@ -126,7 +115,7 @@ async def get_badges(
     
     query += " ORDER BY b.tier, b.name"
     
-    result = await db.execute(query, params)
+    result = await db.execute(text(query), params)
     badges = result.fetchall()
     
     return [
@@ -188,7 +177,7 @@ async def get_quests(
     
     query += " ORDER BY q.quest_type, q.xp_reward DESC"
     
-    result = await db.execute(query, params)
+    result = await db.execute(text(query), params)
     quests = result.fetchall()
     
     return [
@@ -228,7 +217,7 @@ async def complete_quest(
         WHERE q.id = :quest_id AND uq.user_id = :user_id
     """
     
-    result = await db.execute(query, {"quest_id": quest_id, "user_id": user_id})
+    result = await db.execute(text(query), {"quest_id": quest_id, "user_id": user_id})
     quest = result.first()
     
     if not quest:
@@ -251,31 +240,31 @@ async def complete_quest(
     
     # Claim rewards
     await db.execute(
-        """
+        text("""
         UPDATE user_quests 
         SET is_claimed = true, claimed_at = :now 
         WHERE quest_id = :quest_id AND user_id = :user_id
-        """,
+        """),
         {"quest_id": quest_id, "user_id": user_id, "now": datetime.utcnow()}
     )
     
     # Award XP
     await db.execute(
-        """
+        text("""
         UPDATE users 
         SET experience_points = experience_points + :xp 
         WHERE id = :user_id
-        """,
+        """),
         {"xp": quest.xp_reward, "user_id": user_id}
     )
     
     # Log XP transaction
     await db.execute(
-        """
+        text("""
         INSERT INTO xp_transactions (user_id, amount, balance_after, source_type, source_id, description)
         SELECT :user_id, :amount, u.experience_points, 'quest', :quest_id, :description
         FROM users u WHERE u.id = :user_id
-        """,
+        """),
         {
             "user_id": user_id,
             "amount": quest.xp_reward,
@@ -302,7 +291,9 @@ async def get_leaderboard(
     current_user: Dict[str, Any] = Depends(get_current_user),
     db: AsyncSession = Depends(get_db)
 ):
-    """Get leaderboard rankings."""
+    """Get leaderboard rankings, if appropriate for a safeguarded cohort."""
+    if not settings.PUBLIC_LEADERBOARDS_ENABLED:
+        raise HTTPException(status_code=503, detail="Public leaderboards are unavailable for child privacy")
     user_id = current_user["user_id"]
     
     if scope == "global":
@@ -323,7 +314,7 @@ async def get_leaderboard(
             ORDER BY u.experience_points DESC
             LIMIT :limit
         """
-        result = await db.execute(query, {"limit": limit})
+        result = await db.execute(text(query), {"limit": limit})
     else:
         # Friends leaderboard - users you follow
         query = """
@@ -344,7 +335,7 @@ async def get_leaderboard(
             ORDER BY u.experience_points DESC
             LIMIT :limit
         """
-        result = await db.execute(query, {"user_id": user_id, "limit": limit})
+        result = await db.execute(text(query), {"user_id": user_id, "limit": limit})
     
     entries = result.fetchall()
     
@@ -377,7 +368,7 @@ async def claim_reward(
     
     # Get reward
     result = await db.execute(
-        "SELECT * FROM rewards WHERE id = :reward_id AND is_active = true",
+        text("SELECT * FROM rewards WHERE id = :reward_id AND is_active = true"),
         {"reward_id": reward_id}
     )
     reward = result.first()
@@ -390,7 +381,7 @@ async def claim_reward(
     
     # Check if already claimed
     claimed = await db.execute(
-        "SELECT id FROM user_rewards WHERE user_id = :user_id AND reward_id = :reward_id",
+        text("SELECT id FROM user_rewards WHERE user_id = :user_id AND reward_id = :reward_id"),
         {"user_id": user_id, "reward_id": reward_id}
     )
     if claimed.first():
@@ -402,7 +393,7 @@ async def claim_reward(
     # Check XP cost if applicable
     if reward.xp_cost:
         user_result = await db.execute(
-            "SELECT experience_points FROM users WHERE id = :user_id",
+            text("SELECT experience_points FROM users WHERE id = :user_id"),
             {"user_id": user_id}
         )
         user = user_result.first()
@@ -415,13 +406,13 @@ async def claim_reward(
         
         # Deduct XP
         await db.execute(
-            "UPDATE users SET experience_points = experience_points - :cost WHERE id = :user_id",
+            text("UPDATE users SET experience_points = experience_points - :cost WHERE id = :user_id"),
             {"cost": reward.xp_cost, "user_id": user_id}
         )
     
     # Claim reward
     await db.execute(
-        "INSERT INTO user_rewards (user_id, reward_id) VALUES (:user_id, :reward_id)",
+        text("INSERT INTO user_rewards (user_id, reward_id) VALUES (:user_id, :reward_id)"),
         {"user_id": user_id, "reward_id": reward_id}
     )
     

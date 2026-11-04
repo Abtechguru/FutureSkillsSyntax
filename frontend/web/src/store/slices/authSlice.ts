@@ -10,7 +10,7 @@ export interface User {
     firstName: string
     lastName: string
     avatar?: string
-    role: 'mentee' | 'mentor' | 'career_seeker' | 'parent' | 'admin'
+    role: 'mentee' | 'mentor' | 'career_seeker' | 'parent_guardian' | 'admin'
     skills: string[]
     interests: string[]
     location?: string
@@ -38,15 +38,31 @@ export interface LoginCredentials {
 }
 
 export interface RegisterData {
+    isAdult: boolean
     email: string
+    username: string
     password: string
-    firstName: string
-    lastName: string
-    role: 'mentee' | 'mentor' | 'career_seeker' | 'parent'
-    skills: string[]
-    interests: string[]
-    location?: string
-    bio?: string
+    fullName: string
+    role: 'career_seeker' | 'parent_guardian'
+}
+
+// Adapt FastAPI snake_case profile fields without inventing learner progress.
+const normalizeUser = (data: any): User => {
+    const name = String(data.full_name || '').trim().split(/\s+/)
+    return {
+        ...data,
+        id: String(data.id),
+        firstName: name[0] || '',
+        lastName: name.slice(1).join(' '),
+        avatar: data.profile_picture_url || undefined,
+        role: data.role,
+        skills: [],
+        interests: [],
+        location: data.city || undefined,
+        isEmailVerified: Boolean(data.is_verified),
+        createdAt: data.created_at,
+        updatedAt: data.updated_at || data.created_at,
+    }
 }
 
 const initialState: AuthState = {
@@ -67,9 +83,10 @@ export const loginUser = createAsyncThunk(
     async (credentials: LoginCredentials, { rejectWithValue }) => {
         try {
             const response = await api.auth.login(credentials)
-            return response.data
+            const profile = await api.auth.me(response.data.access_token)
+            return { ...response.data, user: normalizeUser(profile.data) }
         } catch (error: any) {
-            return rejectWithValue(error.response?.data?.message || 'Login failed')
+            return rejectWithValue(error.response?.data?.detail || 'Login failed')
         }
     }
 )
@@ -78,7 +95,14 @@ export const registerUser = createAsyncThunk(
     'auth/register',
     async (data: RegisterData, { rejectWithValue }) => {
         try {
-            const response = await api.auth.register(data)
+            const response = await api.auth.register({
+                email: data.email,
+                is_adult: data.isAdult,
+                username: data.username,
+                password: data.password,
+                full_name: data.fullName,
+                role: data.role,
+            })
             return response.data
         } catch (error: any) {
             return rejectWithValue(error.response?.data?.message || 'Registration failed')
@@ -180,9 +204,13 @@ const authSlice = createSlice({
             localStorage.removeItem('accessToken')
             localStorage.removeItem('refreshToken')
         },
-        refreshToken: (state, action: PayloadAction<{ accessToken: string }>) => {
+        refreshToken: (state, action: PayloadAction<{ accessToken: string; refreshToken?: string }>) => {
             state.accessToken = action.payload.accessToken
             localStorage.setItem('accessToken', action.payload.accessToken)
+            if (action.payload.refreshToken) {
+                state.refreshToken = action.payload.refreshToken
+                localStorage.setItem('refreshToken', action.payload.refreshToken)
+            }
         },
         clearError: (state) => {
             state.error = null
@@ -223,15 +251,12 @@ const authSlice = createSlice({
                 state.isLoading = true
                 state.error = null
             })
-            .addCase(registerUser.fulfilled, (state, action) => {
+            .addCase(registerUser.fulfilled, (state) => {
+                // Registration returns a public profile, not access/refresh tokens.
+                // An applicant signs in separately after completing verification.
                 state.isLoading = false
-                state.accessToken = action.payload.access_token
-                state.refreshToken = action.payload.refresh_token
-                state.user = action.payload.user
-                state.isAuthenticated = true
-                state.isEmailVerified = false
-                localStorage.setItem('accessToken', action.payload.access_token)
-                localStorage.setItem('refreshToken', action.payload.refresh_token)
+                state.registrationStep = 1
+                state.registrationData = null
             })
             .addCase(registerUser.rejected, (state, action) => {
                 state.isLoading = false
@@ -278,8 +303,22 @@ const authSlice = createSlice({
                 state.error = action.payload as string
             })
             // Fetch Profile
+            .addCase(fetchUserProfile.pending, (state) => {
+                state.isLoading = true
+            })
             .addCase(fetchUserProfile.fulfilled, (state, action) => {
-                state.user = action.payload
+                state.isLoading = false
+                state.user = normalizeUser(action.payload)
+                state.isAuthenticated = Boolean(state.accessToken)
+            })
+            .addCase(fetchUserProfile.rejected, (state) => {
+                state.isLoading = false
+                state.user = null
+                state.isAuthenticated = false
+                state.accessToken = null
+                state.refreshToken = null
+                localStorage.removeItem('accessToken')
+                localStorage.removeItem('refreshToken')
             })
             // Logout
             .addCase(logoutUser.fulfilled, (state) => {

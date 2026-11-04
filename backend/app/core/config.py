@@ -1,6 +1,6 @@
 from typing import List, Optional
 from pydantic_settings import BaseSettings
-from pydantic import AnyHttpUrl, field_validator
+from pydantic import AnyHttpUrl, field_validator, model_validator
 from functools import lru_cache
 
 
@@ -24,12 +24,12 @@ class Settings(BaseSettings):
     DATABASE_URL: str = "postgresql+asyncpg://postgres:postgres@localhost:54322/postgres"
     
     # Supabase Configuration
-    SUPABASE_URL: str = "https://jpnonlszlqvcdvqdorab.supabase.co"
+    SUPABASE_URL: str = ""
     SUPABASE_ANON_KEY: str = ""
     SUPABASE_SERVICE_ROLE_KEY: str = ""
     
     # MongoDB Configuration (for Goals system)
-    MONGODB_URI: str = "mongodb+srv://careernig24:<db_password>@cluster0.c4h1ona.mongodb.net/?appName=Cluster0"
+    MONGODB_URI: str = ""
     MONGODB_DB_NAME: str = "futureskills"
     MONGODB_PASSWORD: Optional[str] = None  # Set in .env
     
@@ -37,9 +37,48 @@ class Settings(BaseSettings):
     REDIS_URL: str = "redis://localhost:6379/0"
     REDIS_CACHE_TTL: int = 300
     
+    # Child-safety rollout switches: interactive communication and code runners
+    # must remain disabled until vetted supervision and a sandbox are deployed.
+    CHILD_INTERACTIVE_FEATURES_ENABLED: bool = False
+    CODE_EXECUTION_ENABLED: bool = False
+    NON_AVATAR_UPLOADS_ENABLED: bool = False
+    AVATAR_UPLOADS_ENABLED: bool = False
+    MENTOR_ONBOARDING_ENABLED: bool = False
+    MENTOR_MATCHING_ENABLED: bool = False
+    MENTORSHIP_SCHEDULING_ENABLED: bool = False
+    CAREER_API_ENABLED: bool = False
+    GOALS_ENABLED: bool = False
+    PAYMENTS_ENABLED: bool = False
+    PUBLIC_LEADERBOARDS_ENABLED: bool = False
+
     # CORS
     CORS_ORIGINS: List[str] = ["http://localhost:3000", "http://localhost:5173"]
     
+    @model_validator(mode="after")
+    def validate_production_security(self):
+        if self.GOALS_ENABLED and not self.MONGODB_URI:
+            raise ValueError("GOALS_ENABLED requires an explicit MONGODB_URI")
+        if self.AVATAR_UPLOADS_ENABLED and not (self.SUPABASE_URL and self.SUPABASE_SERVICE_ROLE_KEY):
+            raise ValueError("AVATAR_UPLOADS_ENABLED requires server-only Supabase credentials")
+        if self.ENVIRONMENT.lower() == "production":
+            if self.DATABASE_URL == "postgresql+asyncpg://postgres:postgres@localhost:54322/postgres":
+                raise ValueError("Production DATABASE_URL must not use local development defaults")
+            if self.SECRET_KEY == "your-secret-key-change-in-production" or len(self.SECRET_KEY) < 32:
+                raise ValueError("Production SECRET_KEY must be a strong unique value of at least 32 characters")
+            if self.DEBUG:
+                raise ValueError("DEBUG must be disabled in production")
+            if self.DEV_LOG_EMAILS:
+                raise ValueError("DEV_LOG_EMAILS must be disabled in production")
+            if not self.EMAILS_ENABLED or not all(
+                (self.SMTP_HOST, self.SMTP_USER, self.SMTP_PASSWORD, self.EMAIL_FROM)
+            ):
+                raise ValueError("Production signup requires a configured transactional email service")
+            if not self.FRONTEND_URL.startswith("https://"):
+                raise ValueError("FRONTEND_URL must use HTTPS in production")
+            if not self.CORS_ORIGINS or "*" in self.CORS_ORIGINS:
+                raise ValueError("Production CORS_ORIGINS must explicitly name trusted origins")
+        return self
+
     @field_validator("CORS_ORIGINS", mode="before")
     @classmethod
     def assemble_cors_origins(cls, v):

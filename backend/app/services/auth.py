@@ -36,6 +36,7 @@ class AuthService:
         hashed = self.hash_token(token)
         
         user.verification_token = hashed
+        user.verification_token_expires = datetime.utcnow() + timedelta(hours=24)
         await self.db.commit()
         
         return token
@@ -45,13 +46,17 @@ class AuthService:
         hashed = self.hash_token(token)
         
         result = await self.db.execute(
-            select(User).where(User.verification_token == hashed)
+            select(User).where(
+                User.verification_token == hashed,
+                User.verification_token_expires > datetime.utcnow()
+            )
         )
         user = result.scalar_one_or_none()
         
         if user:
             user.is_verified = True
             user.verification_token = None
+            user.verification_token_expires = None
             await self.db.commit()
             return user
         
@@ -64,9 +69,9 @@ class AuthService:
         )
         user = result.scalar_one_or_none()
         
-        if not user:
+        if not user or not user.is_active:
             return None
-        
+
         token = self.generate_token()
         hashed = self.hash_token(token)
         

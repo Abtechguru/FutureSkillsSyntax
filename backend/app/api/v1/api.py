@@ -1,8 +1,9 @@
 """API router configuration."""
 
 from fastapi import APIRouter
+from app.core.config import settings
 
-from app.api.v1.endpoints import auth, career, user, mentorship, gamification, learning, community, upload, goals, collaboration, admin, payment
+from app.api.v1.endpoints import auth, user, mentorship, gamification, learning, upload, admin
 
 api_router = APIRouter()
 
@@ -14,11 +15,13 @@ api_router.include_router(
 )
 
 # Payment routes
-api_router.include_router(
-    payment.router,
-    prefix="/payment",
-    tags=["Payment"]
-)
+if settings.PAYMENTS_ENABLED:
+    from app.api.v1.endpoints import payment
+    api_router.include_router(
+        payment.router,
+        prefix="/payment",
+        tags=["Payment"]
+    )
 
 # Authentication routes
 api_router.include_router(
@@ -35,11 +38,13 @@ api_router.include_router(
 )
 
 # Career routes
-api_router.include_router(
-    career.router,
-    prefix="/career",
-    tags=["Career"]
-)
+if settings.CAREER_API_ENABLED:
+    from app.api.v1.endpoints import career
+    api_router.include_router(
+        career.router,
+        prefix="/career",
+        tags=["Career"]
+    )
 
 # Mentorship routes
 api_router.include_router(
@@ -49,11 +54,13 @@ api_router.include_router(
 )
 
 # Collaboration routes (WebSocket)
-api_router.include_router(
-    collaboration.router,
-    prefix="/collaboration",
-    tags=["Collaboration"]
-)
+if settings.CHILD_INTERACTIVE_FEATURES_ENABLED:
+    from app.api.v1.endpoints import collaboration
+    api_router.include_router(
+        collaboration.router,
+        prefix="/collaboration",
+        tags=["Collaboration"]
+    )
 
 # Gamification routes
 api_router.include_router(
@@ -70,11 +77,13 @@ api_router.include_router(
 )
 
 # Community routes
-api_router.include_router(
-    community.router,
-    prefix="/community",
-    tags=["Community"]
-)
+if settings.CHILD_INTERACTIVE_FEATURES_ENABLED:
+    from app.api.v1.endpoints import community
+    api_router.include_router(
+        community.router,
+        prefix="/community",
+        tags=["Community"]
+    )
 
 # File upload routes
 api_router.include_router(
@@ -84,8 +93,10 @@ api_router.include_router(
 )
 
 # Goals tracking routes (MongoDB)
-api_router.include_router(
-    goals.router,
-    prefix="/goals",
-    tags=["Goals"]
-)
+if settings.GOALS_ENABLED:
+    from app.api.v1.endpoints import goals
+    api_router.include_router(
+        goals.router,
+        prefix="/goals",
+        tags=["Goals"]
+    )

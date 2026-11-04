@@ -1,3 +1,4 @@
+from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
@@ -42,6 +43,41 @@ async def get_db() -> AsyncGenerator[AsyncSession, None]:
 
 
 async def init_db():
-    """Initialize database (create tables)."""
+    """Validate a provisioned production schema; create tables only for development.
+
+    The Supabase bootstrap SQL currently uses UUID user IDs whereas this ORM
+    expects integer IDs. This check prevents silently launching against an
+    incompatible schema or auto-creating production tables.
+    """
+    if settings.ENVIRONMENT.lower() == "production":
+        required_columns = {
+            "users": {"id", "email", "username", "role", "is_active",
+                      "password_reset_token", "password_reset_expires",
+                      "verification_token_expires"},
+            "mentor_assignments": {"id", "mentor_id", "mentee_id", "is_active"},
+            "mentorship_sessions": {"id", "assignment_id", "mentor_id", "mentee_id"},
+        }
+        async with engine.connect() as conn:
+            for table, columns in required_columns.items():
+                result = await conn.execute(
+                    text(
+                        "SELECT column_name, data_type FROM information_schema.columns "
+                        "WHERE table_schema = current_schema() AND table_name = :table"
+                    ),
+                    {"table": table},
+                )
+                available = {name: dtype for name, dtype in result.fetchall()}
+                missing = columns - available.keys()
+                if missing:
+                    raise RuntimeError(
+                        f"Production schema mismatch: {table} missing columns {sorted(missing)}"
+                    )
+                if available["id"] not in ("integer", "bigint"):
+                    raise RuntimeError(
+                        f"Production schema mismatch: {table}.id must use integer identifiers; "
+                        "reconcile Supabase UUID migrations before release"
+                    )
+        return
+
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
