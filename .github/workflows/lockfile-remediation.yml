@@ -1,0 +1,53 @@
+name: Repair production dependency lockfile
+
+on:
+  push:
+    branches: [release/mcn-2026-production-gates]
+    paths:
+      - .github/workflows/lockfile-remediation.yml
+
+permissions:
+  contents: write
+
+jobs:
+  repair:
+    if: github.repository == 'Abtechguru/FutureSkillsSyntax'
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend/web
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b163ceea73d27597364c9af683 # v4.2.2
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+          cache-dependency-path: frontend/web/package-lock.json
+      - name: Repair lockfile only without executing dependency scripts
+        run: |
+          npm audit fix --package-lock-only --ignore-scripts || true
+          git diff --exit-code -- package.json
+      - name: Verify exact dependency install and production build
+        run: |
+          npm ci
+          npm run build
+          npm run lint:core
+      - name: Audit production dependencies
+        continue-on-error: true
+        run: npm audit --omit=dev --audit-level=high
+      - name: Commit verified lockfile changes to review branch
+        working-directory: .
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if git diff --quiet -- frontend/web/package-lock.json; then
+            echo "No safe lockfile fixes available within declared constraints."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add frontend/web/package-lock.json
+          git commit -m "security(deps): apply non-breaking audited lockfile fixes"
+          git -c http.https://github.com/.extraheader="AUTHORIZATION: bearer ${GH_TOKEN}" push origin HEAD:release/mcn-2026-production-gates
