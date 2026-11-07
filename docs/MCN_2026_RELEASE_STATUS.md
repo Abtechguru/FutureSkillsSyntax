@@ -1,34 +1,35 @@
-# Future Syntax — MCN 2026 release status (2026-11-01)
+# Future Syntax — MCN 2026 Release Gate (7 November 2026)
 
-## Verified quality-gate evidence
-GitHub Actions run: https://github.com/Abtechguru/FutureSkillsSyntax/actions/runs/41288898070
+## Public website vs application launch
+The public Vite website is deployed from `main` on Vercel. **This does not mean the authenticated platform or mentorship programme is production-ready.** Changes in this document are implemented in the draft `release/mcn-2026-production-gates` branch and are **not** live unless specifically merged and deployed.
 
-- Python syntax compilation: PASS.
-- FastAPI import without live external credentials: PASS after optional legacy career router isolation.
-- Focused backend auth/storage regression tests: PASS.
-- TypeScript/Vite production web build: PASS.
-- Strict lint of rebuilt MCN screens: PASS.
-- Full legacy lint audit: FAIL (non-blocking). The broader prototype remains subject to technical-debt remediation.
-- npm audit of production web dependencies: FAIL (non-blocking): 13 findings, comprising 6 high and 7 moderate.
-- Full npm dependency install audit: 49 findings including 3 critical (dev plus production dependencies).
-- Vercel: recent branch build status FAILED due build-rate limit; no public production release completed.
+## Code changes in this release candidate
+- Removed the tracked `.env.production` from the current branch tree. Historic Git commits may still expose values: **rotate/revoke credentials and remove historic exposure**. No secret values are reproduced in this report.
+- Removed production fallback to `http://localhost:8000`; sign-in and registration display an unavailable state until an explicit HTTPS `VITE_API_URL` is configured.
+- Added `/ready` backend database readiness check, separated from the `/health` liveness check.
+- Fixed SQLAlchemy user-registration mapper imports. Isolated PostgreSQL API integration tests now cover backend startup, adult registration, login and authenticated profile.
+- Updated container to support dynamically assigned hosting ports and database-aware health checks.
+- Strengthened HTTPS-only CORS production settings and added production configuration regression tests.
+- Repaired frontend lockfile, upgraded React Router to 7.18.5, and removed Monaco Editor and its vulnerable DOMPurify chain.
+- Replaced the legacy live coding playground with a read-only activity, rather than exposing unsupervised WebSocket communication or code execution.
 
-These checks are narrower than full end-to-end functionality and do not establish production readiness.
+## Verification evidence
+- Ephemeral PostgreSQL startup, registration, login, profile: passing on GitHub Actions.
+- Frontend TypeScript/Vite build, core lint, backend syntax and focused security tests: passing on verified release-branch workflow checkpoints.
+- Dependency repair workflow: `npm ci`, production web build, core lint, and `npm audit --omit=dev --audit-level=high` succeeded. The production audit reported **0 vulnerabilities**. Workflow: https://github.com/Abtechguru/FutureSkillsSyntax/actions/runs/42382284791
+- The full legacy frontend lint audit continues to have outstanding findings outside the active MCN screens. It is a separate non-blocking CI report, **not** proof of production quality.
+- A fresh CI run is required after the final lockfile commit. Confirm all required checks before any merge.
 
-## Architecture constraints
-- The connected Supabase project called `futuresyntax` is inactive, and its database could not be read during this audit. The repository previously supplied a different hard-coded Supabase project URL, now removed from configuration defaults.
-- The existing SQLAlchemy ORM uses integer identifiers; the repository's Supabase bootstrap contains UUID identifiers. Data-preserving schema reconciliation is required before live migrations.
-- Tracked environment credentials may be compromised. Rotate keys and secrets and remove the current tracked `.env.production` and any historical exposures. The `backend/.env` was removed on the hardening branch, not from repository history.
-- Guardian consent, mentor-screening evidence, supervised interactions and safeguarding incident workflows are not yet complete. Until then matching, scheduling, social messaging, public leaderboards, payments and child-facing uploads remain intentionally disabled.
+## External blockers — do not merge for full production launch
+1. The connected Supabase project `futuresyntax` (`xqqhkfggysiqrnflyqno`) is **INACTIVE**. A restoration request failed because the organization already has two active free projects. The owner must approve a paid plan or choose which *other* project can be paused; do not pause an unrelated project automatically.
+2. Vercel's `future-skills-syntax` project has **no configured application environment variables** in the checked project. Provision a backend host and set `VITE_API_URL` to its verified HTTPS origin; configure corresponding trusted backend CORS and SMTP.
+3. Reconcile the existing Supabase migration UUID IDs with SQLAlchemy integer IDs using a reviewed, backed-up, non-destructive migration strategy. No database migration has been run against the paused production project.
+4. Rotate/revoke exposed database, SMTP, cloud and other third-party credentials, and assess Git history and deployment logs. A file deletion is **not** historical secret eradication.
+5. Complete verified guardian consent, mentor screening, supervision, moderation, safeguarding reporting, and clear role/ownership rules before any child account, messaging, or mentor assignment goes live.
+6. Verify backend hosting, production HTTPS, end-to-end browser flows, production readiness endpoint, backups, rollback, alerting, accessibility and privacy policies.
+7. Keep production social collaboration, code execution, avatar/document uploads, payments, public leaderboards and mentor matching disabled until their required reviews pass.
 
-## Required before launch
-1. Resolve public credential exposures and confirm the authoritative production database project. Do not expose service-role secrets to the browser.
-2. Complete a migration strategy on a backed-up staging clone; verify ownership and tenant/guardian boundaries and RLS policies before production rollout.
-3. Fix production dependency vulnerabilities, regenerate the lockfile, test regressions and make production audit a required CI check.
-4. Remediate legacy lint debt, complete coverage for every enabled backend endpoint and verify user flows end-to-end (registration, verification, login, password reset, profile, supervised enrolment).
-5. Implement and independently review consent, approval, reporting, mentor safeguarding and supervised communications before enrolling any children.
-6. Confirm Vercel project root/build output, deployment quota, frontend API URL, backend hosting, DNS/TLS, monitoring, backups, rollback and incident response.
-7. Require successful staging build, security tests, data restoration and accessibility checks before releasing on `main`.
+## Release decision
+**Not yet approved for full production.** The static public site may remain online as an informational presence with honest descriptions. Authenticated enrolment of minors and unsupervised communication must remain unavailable.
 
-## Workflow principle
-Never fabricate learners, mentors, programmes, outcomes, payments or progress in authenticated screens. Keep public impact claims factual and avoid identifiable child images without specific guardian permissions. Reviews occur through draft pull requests rather than direct untested production changes.
+Review candidate: https://github.com/Abtechguru/FutureSkillsSyntax/pull/2
