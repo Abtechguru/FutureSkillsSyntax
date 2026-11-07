@@ -32,6 +32,7 @@ jobs:
           cache-dependency-path: frontend/web/package-lock.json
       - name: Repair lockfile only without executing dependency scripts
         run: |
+          npm install --package-lock-only --ignore-scripts
           npm audit fix --package-lock-only --ignore-scripts || true
           git diff --exit-code -- package.json
       - name: Verify exact dependency install and production build
