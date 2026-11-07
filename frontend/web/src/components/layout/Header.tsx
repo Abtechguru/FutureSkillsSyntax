@@ -45,7 +45,7 @@ const Header: React.FC<HeaderProps> = ({
           {!isAuthenticated ? (
             <>
               <Link to="/login" className="hidden rounded-xl px-3 py-2 text-sm font-bold text-[#435360] transition hover:text-[#4e56ca] dark:text-slate-200 sm:inline-flex">Sign in</Link>
-              <a href="/#join" className="inline-flex h-10 items-center gap-1.5 rounded-xl bg-[#4e56ca] px-3 text-xs font-bold text-white transition hover:bg-[#3e46b7] sm:h-11 sm:gap-2 sm:px-4 sm:text-sm">
+              <a href="/#join" className="hidden h-10 items-center gap-1.5 rounded-xl bg-[#4e56ca] px-3 text-xs font-bold text-white transition hover:bg-[#3e46b7] min-[380px]:inline-flex sm:h-11 sm:gap-2 sm:px-4 sm:text-sm">
                 Get involved <ArrowUpRight aria-hidden="true" className="hidden h-4 w-4 sm:block" />
               </a>
             </>
