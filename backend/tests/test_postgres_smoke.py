@@ -17,7 +17,7 @@ def test_real_postgres_startup_and_adult_signup():
             "/api/v1/auth/register",
             json={
                 "is_adult": True,
-                "email": "ci-parent@example.invalid",
+                "email": "ci-parent@example.com",
                 "username": "ci_parent_user",
                 "password": "StrongExamplePassword42!",
                 "full_name": "CI Parent",
@@ -36,4 +36,4 @@ def test_real_postgres_startup_and_adult_signup():
         token = sign_in.json()["access_token"]
         profile = client.get("/api/v1/auth/me", headers={"Authorization": f"Bearer {token}"})
         assert profile.status_code == 200, profile.text
-        assert profile.json()["email"] == "ci-parent@example.invalid"
+        assert profile.json()["email"] == "ci-parent@example.com"
