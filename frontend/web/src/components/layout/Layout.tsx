@@ -40,7 +40,7 @@ const Layout: React.FC = () => {
       />
 
       {/* Main Content */}
-      <div className="flex pt-16">
+      <div className="flex pt-16 lg:pt-[76px]">
         {/* Sidebar */}
         <AnimatePresence>
           {sidebarOpen && (
@@ -60,7 +60,8 @@ const Layout: React.FC = () => {
                 animate={{ x: 0 }}
                 exit={{ x: -300 }}
                 transition={{ type: 'spring', damping: 20 }}
-                className="fixed inset-y-0 left-0 z-50 w-64 overflow-y-auto bg-white dark:bg-gray-900 lg:static lg:inset-0 lg:flex lg:w-64 lg:flex-col"
+                id="mobile-navigation"
+                className="fixed inset-y-0 left-0 z-50 flex w-[min(19rem,88vw)] flex-col overflow-y-auto bg-white dark:bg-[#172537] lg:hidden"
               >
                 <Sidebar
                   onClose={() => setSidebarOpen(false)}
