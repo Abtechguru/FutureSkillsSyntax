@@ -1,4 +1,5 @@
 import React, { useState } from 'react'
+import { hasConfiguredApi, apiUnavailableMessage } from '@/config/runtime'
 import { Link } from 'react-router-dom'
 import { useAuth } from '@/hooks/useAuth'
 import type { RegisterData } from '@/store/slices/authSlice'
@@ -26,6 +27,7 @@ const Register: React.FC = () => {
 
   const submit = async (event: React.FormEvent) => {
     event.preventDefault()
+    if (!hasConfiguredApi) return
     setLocalError('')
     if (values.password !== confirmation) {
       setLocalError('Passwords do not match.')
@@ -93,8 +95,9 @@ const Register: React.FC = () => {
             <input type="checkbox" required checked={values.isAdult} onChange={(e) => setField('isAdult', e.target.checked)} className="mt-1 h-4 w-4" />
             <span>I confirm that I am at least 18 years old. I understand that creating an adult account does not enrol a child or provide guardian consent for programme participation.</span>
           </label>
+          {!hasConfiguredApi && <p role="status" className="rounded-lg bg-amber-50 p-4 text-sm text-amber-900">{apiUnavailableMessage}</p>}
           {(localError || error) && <p role="alert" className="rounded-lg bg-red-50 p-3 text-sm text-red-700">{localError || error}</p>}
-          <button type="submit" disabled={isLoading} className="w-full rounded-lg bg-indigo-700 px-4 py-3 font-semibold text-white hover:bg-indigo-800 disabled:opacity-60">
+          <button type="submit" disabled={isLoading || !hasConfiguredApi} className="w-full rounded-lg bg-indigo-700 px-4 py-3 font-semibold text-white hover:bg-indigo-800 disabled:opacity-60">
             {isLoading ? 'Creating account…' : 'Create adult account'}
           </button>
         </form>

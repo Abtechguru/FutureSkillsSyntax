@@ -1,9 +1,10 @@
 import axios from 'axios'
 import type { AxiosInstance, AxiosRequestConfig, AxiosResponse, InternalAxiosRequestConfig } from 'axios'
 import { toast } from 'react-hot-toast'
+import { hasConfiguredApi, apiBaseUrl, apiUnavailableMessage } from '@/config/runtime'
 import type { User, LoginCredentials, CareerField, MentorshipSession } from '@/types'
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000'
+const API_BASE_URL = apiBaseUrl || 'https://backend-unconfigured.invalid'
 
 class ApiService {
   private api: AxiosInstance
@@ -29,6 +30,9 @@ class ApiService {
     // Request interceptor
     this.api.interceptors.request.use(
       (config: InternalAxiosRequestConfig) => {
+        if (!hasConfiguredApi) {
+          return Promise.reject(new Error(apiUnavailableMessage))
+        }
         const token = this.store?.getState()?.auth?.accessToken
 
         if (token && config.headers && !config.headers.Authorization) {
@@ -102,7 +106,7 @@ class ApiService {
         } else if (error.request) {
           toast.error('Network error. Please check your connection.')
         } else {
-          toast.error('An unexpected error occurred')
+          toast.error(error.message === apiUnavailableMessage ? apiUnavailableMessage : 'An unexpected error occurred')
         }
 
         return Promise.reject(error)
@@ -115,6 +119,9 @@ class ApiService {
       return this.refreshTokenPromise
     }
 
+    if (!hasConfiguredApi) {
+      throw new Error(apiUnavailableMessage)
+    }
     this.refreshTokenPromise = new Promise(async (resolve, reject) => {
       try {
         const refreshTokenValue = this.store?.getState()?.auth?.refreshToken

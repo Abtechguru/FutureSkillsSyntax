@@ -14,7 +14,8 @@ import time
 
 from app.api.v1.api import api_router
 from app.core.config import settings
-from app.core.database import init_db
+from app.core.database import init_db, engine
+from sqlalchemy import text
 
 
 # Configure logging
@@ -136,7 +137,7 @@ app.include_router(api_router, prefix=settings.API_V1_STR)
 # Health check endpoints
 @app.get("/health", tags=["Health"])
 async def health_check():
-    """Health check endpoint for load balancers."""
+    """Liveness only. Use /ready for database-backed service readiness."""
     return {
         "status": "healthy",
         "app": settings.APP_NAME,
@@ -153,3 +154,21 @@ async def root():
         "version": settings.VERSION,
         "docs": f"{settings.API_V1_STR}/docs" if settings.DEBUG else "Disabled in production",
     }
+
+@app.get("/ready", tags=["Health"])
+async def readiness_check():
+    """Report readiness only when PostgreSQL is reachable, without exposing internals."""
+    try:
+        async with engine.connect() as connection:
+            await connection.execute(text("SELECT 1"))
+    except Exception:
+        return JSONResponse(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            content={"status": "unavailable", "service": "database"},
+            headers={"Cache-Control": "no-store"},
+        )
+    return JSONResponse(
+        status_code=status.HTTP_200_OK,
+        content={"status": "ready"},
+        headers={"Cache-Control": "no-store"},
+    )

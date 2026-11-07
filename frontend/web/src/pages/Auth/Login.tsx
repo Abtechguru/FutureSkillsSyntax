@@ -1,4 +1,5 @@
 import React, { useState } from 'react'
+import { hasConfiguredApi, apiUnavailableMessage } from '@/config/runtime'
 import { Link, useSearchParams } from 'react-router-dom'
 import { useAuth } from '@/hooks/useAuth'
 
@@ -9,6 +10,7 @@ const Login: React.FC = () => {
 
   const submit = async (event: React.FormEvent) => {
     event.preventDefault()
+    if (!hasConfiguredApi) return
     try {
       await login(credentials)
     } catch {
@@ -40,8 +42,9 @@ const Login: React.FC = () => {
             Password
             <input type="password" autoComplete="current-password" required className={fieldStyle} value={credentials.password} onChange={(e) => setCredentials((v) => ({ ...v, password: e.target.value }))} />
           </label>
+          {!hasConfiguredApi && <p role="status" className="mt-5 rounded-lg bg-amber-50 p-4 text-sm text-amber-900">{apiUnavailableMessage}</p>}
           {error && <p role="alert" className="rounded-lg bg-red-50 p-3 text-sm text-red-700">{error}</p>}
-          <button type="submit" disabled={isLoading} className="w-full rounded-lg bg-indigo-700 px-4 py-3 font-semibold text-white hover:bg-indigo-800 disabled:opacity-60">
+          <button type="submit" disabled={isLoading || !hasConfiguredApi} className="w-full rounded-lg bg-indigo-700 px-4 py-3 font-semibold text-white hover:bg-indigo-800 disabled:opacity-60">
             {isLoading ? 'Signing in…' : 'Sign in'}
           </button>
         </form>

@@ -8,7 +8,7 @@ class Settings(BaseSettings):
     """Application settings with Supabase integration."""
     
     # Application
-    APP_NAME: str = "OnaAseyori"
+    APP_NAME: str = "Future Syntax"
     VERSION: str = "1.0.0"
     ENVIRONMENT: str = "development"
     DEBUG: bool = False
@@ -75,8 +75,13 @@ class Settings(BaseSettings):
                 raise ValueError("Production signup requires a configured transactional email service")
             if not self.FRONTEND_URL.startswith("https://"):
                 raise ValueError("FRONTEND_URL must use HTTPS in production")
-            if not self.CORS_ORIGINS or "*" in self.CORS_ORIGINS:
-                raise ValueError("Production CORS_ORIGINS must explicitly name trusted origins")
+            if not self.CORS_ORIGINS or any(
+                not origin.startswith("https://")
+                or "localhost" in origin.lower()
+                or "127.0.0.1" in origin
+                for origin in self.CORS_ORIGINS
+            ):
+                raise ValueError("Production CORS_ORIGINS must name only trusted HTTPS origins")
         return self
 
     @field_validator("CORS_ORIGINS", mode="before")
@@ -112,7 +117,7 @@ class Settings(BaseSettings):
     SMTP_USER: Optional[str] = None
     SMTP_PASSWORD: Optional[str] = None
     EMAIL_FROM: Optional[str] = None
-    EMAIL_FROM_NAME: Optional[str] = "OnaAseyori"
+    EMAIL_FROM_NAME: Optional[str] = "Future Syntax"
     
     # Frontend URL for email links
     FRONTEND_URL: str = "http://localhost:5173"

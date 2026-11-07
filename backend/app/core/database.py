@@ -49,6 +49,10 @@ async def init_db():
     expects integer IDs. This check prevents silently launching against an
     incompatible schema or auto-creating production tables.
     """
+    # Career routes are optional, but User has ORM relationships to career
+    # models. Register their mappings before sessions configure or query User.
+    from app.models import career as _career_models  # noqa: F401
+
     if settings.ENVIRONMENT.lower() == "production":
         required_columns = {
             "users": {"id", "email", "username", "role", "is_active",

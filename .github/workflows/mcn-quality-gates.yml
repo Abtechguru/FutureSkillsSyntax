@@ -6,6 +6,7 @@ on:
   push:
     branches:
       - hardening/mcn-2026-launch-readiness
+      - release/mcn-2026-production-gates
 
 permissions:
   contents: read
@@ -50,7 +51,7 @@ jobs:
           SECRET_KEY: ci-only-test-key-never-use-in-deployments
           DATABASE_URL: postgresql+asyncpg://postgres:postgres@localhost:54322/postgres
           DEV_LOG_EMAILS: 'false'
-        run: python -m pytest -q tests/test_auth_boundary_regression.py tests/test_upload_validation.py tests/test_signup_safeguards.py
+        run: python -m pytest -q tests/test_auth_boundary_regression.py tests/test_upload_validation.py tests/test_signup_safeguards.py tests/test_production_configuration.py
 
   web-build:
     runs-on: ubuntu-latest
@@ -76,3 +77,41 @@ jobs:
       - name: Production dependency audit (known debt, non-blocking)
         continue-on-error: true
         run: npm audit --omit=dev --audit-level=high
+
+  postgres-api-smoke:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: futuresyntax_ci
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d futuresyntax_ci"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: pip
+          cache-dependency-path: backend/requirements.txt
+      - name: Install backend dependencies
+        run: python -m pip install -r requirements.txt
+      - name: Test real PostgreSQL-backed API
+        env:
+          DATABASE_URL: postgresql+asyncpg://postgres:postgres@127.0.0.1:5432/futuresyntax_ci
+          ENVIRONMENT: development
+          DEBUG: 'false'
+          SECRET_KEY: integration-test-secret-not-for-deployment
+          DEV_LOG_EMAILS: 'false'
+          EMAILS_ENABLED: 'false'
+        run: python -m pytest -q tests/test_postgres_smoke.py
