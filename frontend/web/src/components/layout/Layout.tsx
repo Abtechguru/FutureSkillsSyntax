@@ -1,5 +1,5 @@
 import React, { useState } from 'react'
-import { Outlet, useNavigate } from 'react-router-dom'
+import { Outlet, useNavigate, useLocation } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useDispatch } from 'react-redux'
 
@@ -12,6 +12,8 @@ const Layout: React.FC = () => {
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const dispatch = useDispatch()
   const navigate = useNavigate()
+  const location = useLocation()
+  const isHomePage = location.pathname === '/'
 
   const handleLogout = () => {
     dispatch(logout())
@@ -27,7 +29,7 @@ const Layout: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-blue-50 dark:from-gray-900 dark:to-gray-800">
+    <div className="min-h-screen bg-[#faf9f6] dark:bg-[#0d1520]">
       {/* Header */}
       <Header
         sidebarOpen={sidebarOpen}
@@ -72,12 +74,12 @@ const Layout: React.FC = () => {
         </AnimatePresence>
 
         {/* Main Content Area */}
-        <main className="flex-1 overflow-y-auto">
+        <main className="min-w-0 flex-1 overflow-x-clip">
           {/* Page Content */}
-          <div className="container-custom py-6">
+          <div className={isHomePage ? "w-full" : "container-custom py-6"}>
             <AnimatePresence mode="wait">
               <motion.div
-                key={window.location.pathname}
+                key={location.pathname}
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -20 }}
